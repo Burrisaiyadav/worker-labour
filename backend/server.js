@@ -19,9 +19,13 @@ console.log('✅ Using Local JSON File Storage (No MongoDB required)');
 
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
+const dashboardRoutes = require('./routes/dashboard');
+const jobsRoutes = require('./routes/jobs');
 
 app.use('/api', apiRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/jobs', jobsRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {

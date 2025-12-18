@@ -16,27 +16,34 @@ class UserJSON {
     constructor(data) {
         this.id = data.id || uuidv4();
         this.name = data.name;
-        this.email = data.email;
-        this.password = data.password;
         this.role = data.role || 'farmer';
-        this.resetPasswordOtp = data.resetPasswordOtp;
-        this.resetPasswordOtpExpire = data.resetPasswordOtpExpire ? new Date(data.resetPasswordOtpExpire) : undefined;
+        this.mobile = data.mobile || '';
+        this.location = data.location || '';
+        this.profileImage = data.profileImage || '';
+        this.loginOtp = data.loginOtp;
+        this.loginOtpExpire = data.loginOtpExpire ? new Date(data.loginOtpExpire) : undefined;
         this.createdAt = data.createdAt || new Date();
         this.updatedAt = new Date();
+    }
+
+    static async findById(id) {
+        const users = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+        const foundUser = users.find(u => u.id === id);
+        return foundUser ? new UserJSON(foundUser) : null;
     }
 
     static async findOne(query) {
         const users = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 
         let foundUser = null;
-        if (query.email) {
-            foundUser = users.find(u => u.email === query.email);
-        } else if (query.resetPasswordOtp && query.resetPasswordOtpExpire) {
-            // For Reset Password (check OTP and Expiry)
+        if (query.mobile) {
+            foundUser = users.find(u => u.mobile === query.mobile);
+        } else if (query.loginOtp && query.loginOtpExpire) {
+            // For Login OTP Verification
             const now = new Date();
             foundUser = users.find(u =>
-                u.resetPasswordOtp === query.resetPasswordOtp &&
-                new Date(u.resetPasswordOtpExpire) > now
+                u.loginOtp === query.loginOtp &&
+                new Date(u.loginOtpExpire) > now
             );
         }
 

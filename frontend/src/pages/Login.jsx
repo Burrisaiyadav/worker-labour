@@ -1,44 +1,70 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Phone, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 
 const Login = () => {
+  const [step, setStep] = useState(1); // 1: Mobile, 2: OTP
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    mobile: '',
+    otp: ''
   });
   const [error, setError] = useState('');
+  const [serverOtp, setServerOtp] = useState(''); // For demo purposes to show OTP in UI if returned
   const navigate = useNavigate();
 
-  const { email, password } = formData;
+  const { mobile, otp } = formData;
 
   const onChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const onSubmit = async (e) => {
+  const onSendOtp = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('token', data.token);
-        // You might want to store user info too
-        localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/'); // Redirect to dashboard or home
-      } else {
-        setError(data.msg || 'Login failed');
-      }
+        const response = await fetch('http://localhost:5000/api/auth/login/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mobile }),
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            setStep(2);
+            setError('');
+            if (data.otp) {
+                // For demo/dev purposes, show the OTP or log it
+                console.log('Received OTP:', data.otp);
+                setServerOtp(data.otp); 
+            }
+        } else {
+            setError(data.msg || 'Failed to send OTP');
+        }
     } catch (err) {
-      setError('Server Error');
-      console.error(err);
+        setError('Server Error');
+        console.error(err);
+    }
+  };
+
+  const onVerifyOtp = async (e) => {
+    e.preventDefault();
+    try {
+        const response = await fetch('http://localhost:5000/api/auth/login/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mobile, otp }),
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            // Redirect based on role (defaulting to dashboard for all for now)
+            navigate('/dashboard'); 
+        } else {
+            setError(data.msg || 'Invalid OTP');
+        }
+    } catch (err) {
+        setError('Server Error');
+        console.error(err);
     }
   };
 
@@ -50,7 +76,7 @@ const Login = () => {
             Welcome Back
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Sign in to access your dashboard
+            {step === 1 ? 'Enter your mobile number to sign in' : 'Enter the OTP sent to your mobile'}
           </p>
         </div>
         
@@ -60,69 +86,89 @@ const Login = () => {
           </div>
         )}
 
-        <form className="mt-8 space-y-6" onSubmit={onSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div className="mb-4">
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email-address"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                  placeholder="Email address"
-                  value={email}
-                  onChange={onChange}
-                />
-              </div>
+        {/* Demo Timer/OTP Hint */}
+        {step === 2 && serverOtp && (
+            <div className="bg-blue-50 text-blue-700 p-3 rounded-md text-sm text-center mb-4">
+                <strong>Demo:</strong> Your OTP is {serverOtp}
             </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                  placeholder="Password"
-                  value={password}
-                  onChange={onChange}
-                />
-              </div>
-            </div>
-          </div>
+        )}
 
-          <div className="flex items-center justify-between">
-            <div className="text-sm">
-              <Link to="/forgot-password" className="font-medium text-green-600 hover:text-green-500">
-                Forgot your password?
-              </Link>
-            </div>
-          </div>
+        {step === 1 ? (
+             <form className="mt-8 space-y-6" onSubmit={onSendOtp}>
+                <div className="rounded-md shadow-sm -space-y-px">
+                    <div className="mb-4">
+                    <label htmlFor="mobile" className="sr-only">
+                        Mobile Number
+                    </label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Phone className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                        id="mobile"
+                        name="mobile"
+                        type="tel"
+                        required
+                        className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
+                        placeholder="Mobile Number"
+                        value={mobile}
+                        onChange={onChange}
+                        />
+                    </div>
+                    </div>
+                </div>
 
-          <div>
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
-            >
-              Sign in
-            </button>
-          </div>
-        </form>
+                <div>
+                    <button
+                    type="submit"
+                    className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+                    >
+                    Send OTP
+                    </button>
+                </div>
+            </form>
+        ) : (
+            <form className="mt-8 space-y-6" onSubmit={onVerifyOtp}>
+                <div className="rounded-md shadow-sm -space-y-px">
+                    <div className="mb-4">
+                    <label htmlFor="otp" className="sr-only">
+                        OTP
+                    </label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Lock className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                        id="otp"
+                        name="otp"
+                        type="text"
+                        required
+                        className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
+                        placeholder="Enter OTP"
+                        value={otp}
+                        onChange={onChange}
+                        />
+                    </div>
+                    </div>
+                </div>
+
+                <div className="flex gap-4">
+                     <button
+                        type="button"
+                        onClick={() => setStep(1)}
+                        className="group relative flex-1 flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+                    >
+                    Back
+                    </button>
+                    <button
+                        type="submit"
+                        className="group relative flex-1 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+                    >
+                    Login
+                    </button>
+                </div>
+            </form>
+        )}
         
         <div className="text-center mt-4">
           <p className="text-sm text-gray-600">

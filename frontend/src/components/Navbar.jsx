@@ -65,6 +65,7 @@ const Navbar = () => {
             
             {token ? (
               <div className="flex items-center space-x-4">
+                <Link to="/dashboard" className="text-gray-600 hover:text-green-600 font-medium">Dashboard</Link>
                 <span className="text-gray-700 font-medium flex items-center gap-2">
                   <User size={18} /> {user.name?.split(' ')[0]}
                 </span>
@@ -103,6 +104,7 @@ const Navbar = () => {
             
             {token ? (
               <>
+                 <Link to="/dashboard" className="block w-full text-left px-3 py-2 text-gray-600 hover:text-green-600 font-medium">Dashboard</Link>
                  <div className="px-3 py-2 text-gray-700 font-medium flex items-center gap-2">
                     <User size={18} /> {user.name}
                  </div>

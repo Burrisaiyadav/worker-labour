@@ -1,28 +1,24 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken'); // Assuming JWT is still needed for session management after OTP
 const User = require('../models/UserJSON');
 
 // Register
 router.post('/register', async (req, res) => {
-    const { name, email, password, role } = req.body;
+    const { name, role, mobile, location } = req.body;
 
     try {
-        let user = await User.findOne({ email });
+        let user = await User.findOne({ mobile });
         if (user) {
-            return res.status(400).json({ msg: 'User already exists' });
+            return res.status(400).json({ msg: 'User with this mobile number already exists' });
         }
 
         user = new User({
             name,
-            email,
-            password,
-            role
+            role,
+            mobile,
+            location
         });
-
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(password, salt);
 
         await user.save();
 
@@ -35,10 +31,10 @@ router.post('/register', async (req, res) => {
         jwt.sign(
             payload,
             process.env.JWT_SECRET,
-            { expiresIn: '1h' },
+            { expiresIn: '30d' }, // Longer expiration for mobile app usability
             (err, token) => {
                 if (err) throw err;
-                res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+                res.json({ token, user: { id: user.id, name: user.name, mobile: user.mobile, role: user.role } });
             }
         );
     } catch (err) {
@@ -47,112 +43,76 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Login
-router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+// Login Step 1: Send OTP
+router.post('/login/send-otp', async (req, res) => {
+    const { mobile } = req.body;
 
     try {
-        let user = await User.findOne({ email });
+        let user = await User.findOne({ mobile });
         if (!user) {
-            return res.status(400).json({ msg: 'Invalid Credentials' });
+            return res.status(400).json({ msg: 'Mobile number not found. Please register first.' });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ msg: 'Invalid Credentials' });
-        }
+        // Generate 4 digit OTP for simplicity
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
-        const payload = {
-            user: {
-                id: user.id
-            }
-        };
-
-        jwt.sign(
-            payload,
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' },
-            (err, token) => {
-                if (err) throw err;
-                res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
-            }
-        );
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
-    }
-});
-
-const sendEmail = require('../utils/sendEmail');
-
-// Forgot Password
-router.post('/forgot-password', async (req, res) => {
-    const { email } = req.body;
-
-    try {
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ msg: 'User not found' });
-        }
-
-        // Generate 6 digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-        user.resetPasswordOtp = otp;
-        user.resetPasswordOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+        user.loginOtp = otp;
+        user.loginOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
 
         await user.save();
 
-        const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please use the following OTP to reset your password: \n\n ${otp} \n\n This OTP is valid for 10 minutes.`;
+        // In a real app, send SMS here. For now, return OTP in response.
+        console.log(`OTP for ${mobile}: ${otp}`);
 
-        try {
-            await sendEmail({
-                email: user.email,
-                subject: 'Password Reset OTP',
-                message
-            });
+        res.json({ success: true, msg: 'OTP sent to mobile number', otp: otp });
 
-            res.status(200).json({ success: true, data: 'Email sent' });
-        } catch (err) {
-            console.error(err);
-            user.resetPasswordOtp = undefined;
-            user.resetPasswordOtpExpire = undefined;
-            await user.save();
-            return res.status(500).json({ msg: 'Email could not be sent' });
-        }
     } catch (err) {
-        console.error(err);
-        res.status(500).send('Server Error');
+        console.error(err.message);
+        res.status(500).send('Server error');
     }
 });
 
-// Reset Password
-router.post('/reset-password', async (req, res) => {
-    const { otp, newPassword } = req.body;
+// Login Step 2: Verify OTP
+router.post('/login/verify', async (req, res) => {
+    const { mobile, otp } = req.body;
 
     try {
-        const user = await User.findOne({
-            resetPasswordOtp: otp,
-            resetPasswordOtpExpire: { $gt: Date.now() }
-        });
+        // Find user by mobile first to ensure we are checking the right user
+        let user = await User.findOne({ mobile });
 
         if (!user) {
+            return res.status(400).json({ msg: 'User not found' });
+        }
+
+        // Check if OTP matches and is not expired
+        if (user.loginOtp !== otp || new Date(user.loginOtpExpire) < new Date()) {
             return res.status(400).json({ msg: 'Invalid or Expired OTP' });
         }
 
-        // Hash new password
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
-
-        user.resetPasswordOtp = undefined;
-        user.resetPasswordOtpExpire = undefined;
-
+        // Clear OTP fields
+        user.loginOtp = undefined;
+        user.loginOtpExpire = undefined;
         await user.save();
 
-        res.status(200).json({ success: true, data: 'Password updated success' });
+        const payload = {
+            user: {
+                id: user.id
+            }
+        };
+
+        jwt.sign(
+            payload,
+            process.env.JWT_SECRET,
+            { expiresIn: '30d' },
+            (err, token) => {
+                if (err) throw err;
+                res.json({ token, user: { id: user.id, name: user.name, mobile: user.mobile, role: user.role } });
+            }
+        );
+
     } catch (err) {
-        console.error(err);
-        res.status(500).send('Server Error');
+        console.error(err.message);
+        res.status(500).send('Server error');
     }
 });
 

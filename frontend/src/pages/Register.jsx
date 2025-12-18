@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Briefcase } from 'lucide-react';
+import { User, Briefcase, Phone, MapPin } from 'lucide-react';
 
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
-    password: '',
-    role: 'farmer' // Default role
+    role: 'farmer', // Default role
+    mobile: '',
+    location: ''
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const { name, email, password, role } = formData;
+  const { name, role, mobile, location } = formData;
 
   const onChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -25,7 +25,7 @@ const Register = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email, password, role }),
+        body: JSON.stringify({ name, role, mobile, location }),
       });
 
       const data = await response.json();
@@ -33,7 +33,12 @@ const Register = () => {
       if (response.ok) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/');
+        // Redirect based on role
+        if (data.user.role === 'farmer') {
+            navigate('/dashboard');
+        } else {
+            navigate('/');
+        }
       } else {
         setError(data.msg || 'Registration failed');
       }
@@ -79,37 +84,42 @@ const Register = () => {
                 />
             </div>
             
-            <div className="relative">
+             <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <Phone className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  id="email-address"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
+                  id="mobile"
+                  name="mobile"
+                  type="tel"
                   required
                   className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                  placeholder="Email address"
-                  value={email}
+                  placeholder="Mobile Number"
+                  value={mobile}
                   onChange={onChange}
                 />
             </div>
 
             <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <MapPin className="h-5 w-5 text-gray-400" />
                 </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
+                <select
+                  id="location"
+                  name="location"
                   required
-                  className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                  placeholder="Password"
-                  value={password}
+                  className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                  value={location}
                   onChange={onChange}
-                />
+                >
+                    <option value="" disabled>Select Location</option>
+                    <option value="Punjab">Punjab</option>
+                    <option value="Haryana">Haryana</option>
+                    <option value="Uttar Pradesh">Uttar Pradesh</option>
+                    <option value="Maharashtra">Maharashtra</option>
+                    <option value="Madhya Pradesh">Madhya Pradesh</option>
+                    <option value="Other">Other</option>
+                </select>
             </div>
 
             <div className="relative">
