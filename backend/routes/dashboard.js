@@ -4,6 +4,7 @@ const auth = require('../middleware/authMiddleware');
 
 const User = require('../models/UserJSON');
 const Job = require('../models/JobJSON');
+const LabourGroup = require('../models/LabourGroupJSON');
 
 // @route   GET /api/dashboard/farmer
 // @desc    Get farmer dashboard data
@@ -37,11 +38,15 @@ router.get('/farmer', auth, async (req, res) => {
         // But for "nearbyGroups", we still need mock data as we don't have Workers DB yet.
 
         // Nearby Groups Mock Data
-        nearbyGroups = [
-            { id: 101, name: 'Sharma Labour Group', rating: 4.8, members: 25, rate: 450, contact: '98****1234' },
-            { id: 102, name: 'Verma Brothers', rating: 4.5, members: 15, rate: 400, contact: '88****5678' },
-            { id: 103, name: 'Jai Kisan Union', rating: 4.2, members: 40, rate: 420, contact: '76****9012' },
-        ];
+        // Nearby Groups - Real Data Filtered by Location
+        nearbyGroups = await LabourGroup.find({ location: location });
+
+        // Fallback: If no local groups found, maybe show some top rated ones regardless of location? 
+        // Or just show empty. For "Real" feel, empty is arguably more correct if none exist.
+        // But for demo, let's just default to finding all if none found in location?
+        if (nearbyGroups.length === 0) {
+            nearbyGroups = await LabourGroup.find({});
+        }
 
 
         res.json({
