@@ -37,7 +37,7 @@ const Register = () => {
         if (data.user.role === 'farmer') {
             navigate('/dashboard');
         } else {
-            navigate('/');
+            navigate('/labour/dashboard');
         }
       } else {
         setError(data.msg || 'Registration failed');
@@ -135,7 +135,7 @@ const Register = () => {
                 onChange={onChange}
               >
                 <option value="farmer">I am a Farmer</option>
-                <option value="laborer">I am a Laborer</option>
+                <option value="labour">I am a Laborer</option>
               </select>
             </div>
           </div>

@@ -19,6 +19,13 @@ class UserJSON {
         this.role = data.role || 'farmer';
         this.mobile = data.mobile || '';
         this.location = data.location || '';
+        this.gender = data.gender || '';
+        this.skills = data.skills || [];
+        this.crops = data.crops || [];
+        this.farmSize = data.farmSize || '';
+        this.experience = data.experience || '';
+        this.radius = data.radius || '';
+        this.rate = data.rate || '';
         this.profileImage = data.profileImage || '';
         this.loginOtp = data.loginOtp;
         this.loginOtpExpire = data.loginOtpExpire ? new Date(data.loginOtpExpire) : undefined;

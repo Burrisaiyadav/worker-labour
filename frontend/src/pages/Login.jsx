@@ -57,8 +57,11 @@ const Login = () => {
         if (response.ok) {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
-            // Redirect based on role (defaulting to dashboard for all for now)
-            navigate('/dashboard'); 
+            if (data.user.role === 'labour' || data.user.role === 'worker' || data.user.role === 'laborer') {
+                navigate('/labour/dashboard');
+            } else {
+                navigate('/dashboard'); 
+            } 
         } else {
             setError(data.msg || 'Invalid OTP');
         }

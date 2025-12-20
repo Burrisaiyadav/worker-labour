@@ -21,7 +21,9 @@ class JobJSON {
         this.workers = data.workers;
         this.cost = data.cost;
         this.description = data.description;
+        this.location = data.location;
         this.status = data.status || 'Active'; // Active, In Progress, Completed
+        this.assignedTo = data.assignedTo || null; // Labour ID
         this.createdAt = data.createdAt || new Date();
     }
 

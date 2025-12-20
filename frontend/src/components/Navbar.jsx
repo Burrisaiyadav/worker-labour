@@ -52,23 +52,37 @@ const Navbar = () => {
   return (
     <nav className="bg-white shadow-sm fixed w-full z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
+        <div className="flex justify-between h-16 items-center">
+          <div className="flex items-center flex-shrink-0">
             <Link to="/" className="text-2xl font-bold text-green-700">Labour</Link>
           </div>
           
-          <div className="hidden md:flex items-center space-x-8">
-            <NavLink to="hero">Home</NavLink>
-            <NavLink to="features">Features</NavLink>
-            <NavLink to="how-it-works">How it Works</NavLink>
-            <NavLink to="testimonials">Testimonials</NavLink>
-            
+          <div className="hidden md:flex items-center justify-center flex-1 space-x-8">
+            {location.pathname === '/' ? (
+                <>
+                    <NavLink to="hero">Home</NavLink>
+                    <NavLink to="features">Features</NavLink>
+                    <NavLink to="how-it-works">How it Works</NavLink>
+                    <NavLink to="testimonials">Testimonials</NavLink>
+                </>
+            ) : (
+                 <>
+                    <Link to="/dashboard" className="text-gray-600 hover:text-green-600 font-medium whitespace-nowrap">Home</Link>
+                    <Link to="/find-labour" className="text-gray-600 hover:text-green-600 font-medium whitespace-nowrap">Find Labour</Link>
+                    <Link to="/my-jobs" className="text-gray-600 hover:text-green-600 font-medium whitespace-nowrap">My Jobs</Link>
+                 </>
+            )}
+          </div>
+
+          <div className="hidden md:flex items-center ml-4">
             {token ? (
               <div className="flex items-center space-x-4">
-                <Link to="/dashboard" className="text-gray-600 hover:text-green-600 font-medium">Dashboard</Link>
-                <span className="text-gray-700 font-medium flex items-center gap-2">
+                <Link 
+                    to={(user.role?.toLowerCase() === 'labour' || user.role?.toLowerCase() === 'worker') ? '/labour/dashboard' : '/dashboard'} 
+                    className="text-gray-700 font-medium flex items-center gap-2 hover:text-green-600 transition-colors"
+                >
                   <User size={18} /> {user.name?.split(' ')[0]}
-                </span>
+                </Link>
                 <button 
                   onClick={handleLogout}
                   className="text-gray-600 hover:text-red-600 flex items-center gap-1"
@@ -77,12 +91,12 @@ const Navbar = () => {
                 </button>
               </div>
             ) : (
-              <>
+              <div className="flex items-center space-x-4">
                 <Link to="/login" className="text-green-600 font-medium hover:text-green-700">Login</Link>
                 <Link to="/register" className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition">
                   Get Started
                 </Link>
-              </>
+              </div>
             )}
           </div>
 

@@ -18,6 +18,7 @@ import {
 import Messages from './Messages';
 import PostJobModal from '../components/PostJobModal';
 import ScanQRModal from '../components/ScanQRModal';
+import FarmerNavbar from '../components/FarmerNavbar';
 import { api } from '../utils/api';
 
 const FarmerDashboard = () => {
@@ -129,42 +130,12 @@ const FarmerDashboard = () => {
     return (
         <div className="min-h-screen bg-gray-50 font-sans">
             {/* Top Navigation Bar */}
-            <nav className="bg-white shadow-sm border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-                <div className="flex items-center gap-2">
-                    <span className="text-xl font-bold text-gray-900 tracking-tight">Labour</span>
-                </div>
-                
-                <div className="flex items-center gap-6">
-                    <div className="hidden md:flex items-center gap-4 text-sm font-medium text-gray-500">
-                        <button onClick={handleFindLabour} className="hover:text-green-600 transition-colors">Find Labour</button>
-                        <button onClick={handleMyJobs} className="hover:text-green-600 transition-colors">My Jobs</button>
-                    </div>
-                    <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
-                        <div className="text-right hidden sm:block">
-                            <p className="text-sm font-semibold text-gray-900">{user.name}</p>
-                            <p className="text-xs text-gray-500 capitalize">{user.role}</p>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                             {/* Mobile My Jobs */}
-                             <button onClick={handleMyJobs} className="md:hidden p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-green-600 transition-colors" title="My Jobs">
-                                <Briefcase className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border-2 border-green-50 shadow-sm">
-                            {user.name.charAt(0)}
-                        </div>
-                        <button 
-                            onClick={handleLogout}
-                            className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-red-500 transition-colors"
-                            title="Logout"
-                        >
-                            <LogOut className="h-5 w-5" />
-                        </button>
-                    </div>
-                </div>
-            </nav>
+            {/* Top Navigation Bar */}
+            <FarmerNavbar 
+                user={user} 
+                onLogout={handleLogout} 
+                onPostJob={() => setShowPostJob(true)} 
+            />
 
             <main className="max-w-7xl mx-auto px-6 py-8">
                 {/* Welcome Section */}

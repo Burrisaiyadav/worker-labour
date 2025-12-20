@@ -116,4 +116,48 @@ router.post('/login/verify', async (req, res) => {
     }
 });
 
+const auth = require('../middleware/authMiddleware');
+
+// @route   GET /api/auth/user
+// @desc    Get user data
+// @access  Private
+router.get('/user', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        res.json(user);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// @route   PUT /api/auth/profile
+// @desc    Update user profile
+// @access  Private
+router.put('/profile', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        const { name, location, skills, experience, radius, rate, phone, gender, farmSize, crops } = req.body;
+
+        if (name) user.name = name;
+        if (location) user.location = location;
+        if (skills) user.skills = skills;
+        if (crops) user.crops = crops;
+        if (experience) user.experience = experience;
+        if (farmSize) user.farmSize = farmSize;
+        if (radius) user.radius = radius;
+        if (rate) user.rate = rate;
+        if (phone) user.mobile = phone;
+        if (gender) user.gender = gender;
+
+        await user.save();
+        res.json(user);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
 module.exports = router;

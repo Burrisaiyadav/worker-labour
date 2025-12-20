@@ -28,11 +28,16 @@ app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Basic Route
 app.get('/', (req, res) => {
     res.send('Farm Hand Backend is Running');
 });
+
+// Seed Data
+const seedLabourGroups = require('./utils/seedLabourGroups');
+seedLabourGroups();
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
