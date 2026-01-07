@@ -2,24 +2,35 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const Job = require('../models/JobJSON');
+const User = require('../models/UserJSON');
+const Attendance = require('../models/AttendanceJSON');
+const Notification = require('../models/NotificationJSON');
 
 // @route   POST /api/jobs
 // @desc    Create a new job
 // @access  Private
 router.post('/', auth, async (req, res) => {
     try {
+        const user = await User.findById(req.user.id); // Fetch user to get their name
         const newJob = new Job({
             userId: req.user.id,
+            farmerName: user.name, // Added farmerName
             title: req.body.title,
             date: req.body.date,
             workers: req.body.workers,
             cost: req.body.cost,
             description: req.body.description,
-            location: req.body.location, // Added location
+            location: req.body.location || 'Punjab', // Fallback or dynamic
+            image: req.body.image, // Base64 image
             status: 'Active'
         });
 
         const job = await newJob.save();
+
+        // Emit socket event to all connected clients (specifically for labourers)
+        const io = req.app.get('io');
+        io.emit('new-job', job);
+
         res.json(job);
     } catch (err) {
         console.error(err.message);
@@ -63,6 +74,20 @@ router.get('/available', auth, async (req, res) => {
 router.get('/labour/active', auth, async (req, res) => {
     try {
         const jobs = await Job.find({});
+        const myActiveJobs = jobs.filter(j => j.assignedTo === req.user.id && j.status !== 'Completed');
+        res.json(myActiveJobs);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/jobs/labour/history
+// @desc    Get all job history for logged in labour
+// @access  Private
+router.get('/labour/history', auth, async (req, res) => {
+    try {
+        const jobs = await Job.find({});
         const myJobs = jobs.filter(j => j.assignedTo === req.user.id);
         res.json(myJobs);
     } catch (err) {
@@ -78,6 +103,8 @@ router.put('/:id/status', auth, async (req, res) => {
     const { status } = req.body;
     try {
         const job = await Job.findById(req.params.id);
+        console.log('Update Job Status Request:', { id: req.params.id, status, user: req.user.id });
+
         if (!job) return res.status(404).json({ msg: 'Job not found' });
 
         // Logic check
@@ -98,8 +125,84 @@ router.put('/:id/status', auth, async (req, res) => {
         }
 
         await job.save();
+
+        // Emit socket event to the farmer (job owner)
+        const io = req.app.get('io');
+        io.to(job.userId).emit('job-status-updated', job);
+
+        // Create notification for farmer if accepted
+        if (status === 'In Progress') {
+            const labourer = await User.findById(req.user.id);
+            const newNotif = new Notification({
+                userId: job.userId,
+                title: 'Job Accepted',
+                message: `${labourer.name} has accepted your job: ${job.title}`,
+                type: 'job'
+            });
+            await newNotif.save();
+            io.to(job.userId).emit('new-notification', newNotif);
+        }
+
         res.json(job);
 
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   POST /api/jobs/attendance
+// @desc    Mark attendance via QR scan
+// @access  Private (Farmer)
+router.post('/attendance', auth, async (req, res) => {
+    const { labourId } = req.body;
+    try {
+        const farmer = await User.findById(req.user.id);
+        const labourer = await User.findById(labourId);
+
+        if (!labourer) return res.status(404).json({ msg: 'Labourer not found' });
+
+        // Record attendance permanently
+        const newAttendance = new Attendance({
+            farmerId: farmer.id,
+            farmerName: farmer.name,
+            labourId: labourer.id,
+            labourName: labourer.name
+        });
+        await newAttendance.save();
+
+        console.log(`Attendance saved: ${labourer.name} by ${farmer.name}`);
+
+        // Create notification for labourer
+        const io = req.app.get('io');
+        const newNotif = new Notification({
+            userId: labourId,
+            title: 'Attendance Marked',
+            message: `${farmer.name} marked your attendance for today.`,
+            type: 'job'
+        });
+        await newNotif.save();
+        io.to(labourId).emit('new-notification', newNotif);
+
+        res.json({
+            success: true,
+            msg: `Attendance marked for ${labourer.name}`,
+            labourerName: labourer.name
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/jobs/:id
+// @desc    Get job by ID
+// @access  Private
+router.get('/:id', auth, async (req, res) => {
+    try {
+        const job = await Job.findById(req.params.id);
+        if (!job) return res.status(404).json({ msg: 'Job not found' });
+        res.json(job);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

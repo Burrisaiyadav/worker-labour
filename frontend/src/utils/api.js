@@ -55,5 +55,28 @@ export const api = {
         } catch (err) {
             throw err;
         }
+    },
+
+    put: async (endpoint, body) => {
+        try {
+            const response = await fetch(`${BASE_URL}${endpoint}`, {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify(body)
+            });
+
+            if (response.status === 401) {
+                throw new Error('Unauthorized');
+            }
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.msg || 'Request failed');
+            }
+
+            return await response.json();
+        } catch (err) {
+            throw err;
+        }
     }
 };

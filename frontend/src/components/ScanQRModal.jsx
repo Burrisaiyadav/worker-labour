@@ -46,32 +46,23 @@ const ScanQRModal = ({ onClose }) => {
         setPaymentStatus('processing');
 
         try {
-            // Assuming scanned code is a Worker ID or similar, e.g., "WORKER-123"
-            // Or a JSON string: { "id": "...", "name": "..." }
-            
-            // For Demo/Real Feel: Let's assume ANY QR code is valid for now, 
-            // and we simulate paying them. In real life, we'd parse specific format.
-            console.log(`Scan Code: ${decodedText}`);
+            // Decoded text is the Labourer ID
+            console.log(`Scanned Labourer ID: ${decodedText}`);
 
-            // Call Backend to Record Transaction
-            // Mocking details based on scan
-            const paymentData = {
-                payeeId: decodedText, // Using the scanned text as ID for now
-                amount: 500, // Default payment amount for demo
-                details: 'Quick Payment via QR'
-            };
-
-            await api.post('/payments', paymentData);
+            // Call Backend to Mark Attendance
+            const response = await api.post('/jobs/attendance', {
+                labourId: decodedText
+            });
 
             setResult({
-                name: 'Identified User', // We could fetch user details by ID if we had endpoint
+                name: response.labourerName || 'Worker Identified',
                 id: decodedText,
-                verified: true
+                msg: response.msg
             });
             setPaymentStatus('success');
 
         } catch (err) {
-            console.error("Payment Error", err);
+            console.error("Attendance Error", err);
             setPaymentStatus('error');
         }
     };
@@ -106,7 +97,7 @@ const ScanQRModal = ({ onClose }) => {
                         {paymentStatus === 'processing' && (
                              <div className="py-8">
                                 <Loader className="h-12 w-12 text-green-600 animate-spin mx-auto mb-4" />
-                                <h3 className="text-lg font-bold text-gray-900">Processing Payment...</h3>
+                                <h3 className="text-lg font-bold text-gray-900">Marking Attendance...</h3>
                              </div>
                         )}
 
@@ -115,11 +106,11 @@ const ScanQRModal = ({ onClose }) => {
                                 <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
                                     <CheckCircle className="h-10 w-10 text-green-600" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-900 mb-1">Payment Successful!</h3>
-                                <p className="text-gray-500 mb-4">₹500.00 sent successfully</p>
+                                <h3 className="text-xl font-bold text-gray-900 mb-1">Attendance Marked!</h3>
+                                <p className="text-gray-500 mb-4">{result.msg}</p>
                                 
                                 <div className="bg-gray-50 rounded-xl p-4 my-4 border border-gray-100">
-                                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Paid To</p>
+                                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Worker Name</p>
                                     <p className="text-lg font-bold text-gray-900">{result.name}</p>
                                     <p className="text-xs font-mono text-gray-400">{result.id}</p>
                                 </div>
@@ -131,8 +122,8 @@ const ScanQRModal = ({ onClose }) => {
                                 <div className="mx-auto w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4">
                                     <AlertCircle className="h-10 w-10 text-red-600" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-900 mb-1">Payment Failed</h3>
-                                <p className="text-gray-500 mb-4">There was an issue processing the transaction.</p>
+                                <h3 className="text-xl font-bold text-gray-900 mb-1">Scan Failed</h3>
+                                <p className="text-gray-500 mb-4">Could not verify worker. Please try again.</p>
                             </>
                         )}
 

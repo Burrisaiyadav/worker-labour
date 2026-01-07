@@ -37,33 +37,43 @@ router.get('/farmer', auth, async (req, res) => {
         // User requested "real use", so let's stick to real data even if empty.
         // But for "nearbyGroups", we still need mock data as we don't have Workers DB yet.
 
-        // Nearby Groups Mock Data
-        // Nearby Groups - Real Data Filtered by Location
-        nearbyGroups = await LabourGroup.find({ location: location });
+        // Fetch Real Labourers filtered by Location (Nearby Workers)
+        const allLabourers = await User.find({ role: 'labour' });
+        nearbyGroups = allLabourers.filter(l =>
+            l.location && l.location.toLowerCase().includes(location)
+        );
 
-        // Fallback: If no local groups found, maybe show some top rated ones regardless of location? 
-        // Or just show empty. For "Real" feel, empty is arguably more correct if none exist.
-        // But for demo, let's just default to finding all if none found in location?
+        // Fallback: If no local workers found, show some others for demo
         if (nearbyGroups.length === 0) {
-            nearbyGroups = await LabourGroup.find({});
+            nearbyGroups = allLabourers.slice(0, 5);
         }
 
+        // Enrich jobs with assigned worker names
+        const enrichedJobs = await Promise.all(activeJobs.map(async (job) => {
+            if (job.assignedTo) {
+                const worker = await User.findById(job.assignedTo);
+                return {
+                    ...job,
+                    assignedToName: worker ? worker.name : null,
+                    assignedToPhone: worker ? worker.mobile : null
+                };
+            }
+            return job;
+        }));
 
         res.json({
             user: {
                 id: user.id,
                 name: user.name,
-                // Removed email
                 role: user.role,
                 mobile: user.mobile,
                 location: user.location,
                 profileImage: user.profileImage
             },
-            activeJobs,
+            activeJobs: enrichedJobs,
             nearbyGroups,
             stats: {
                 activeJobsCount: activeJobs.length,
-                totalSpent: activeJobs.reduce((acc, job) => acc + (job.status === 'Completed' || job.status === 'In Progress' ? job.cost : 0), 0),
                 pendingAction: 1
             }
         });

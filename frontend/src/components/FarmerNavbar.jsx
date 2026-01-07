@@ -1,13 +1,47 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Briefcase, Search, PlusCircle, LogOut, Menu, X, User } from 'lucide-react';
+import { Home, Briefcase, Search, PlusCircle, LogOut, Menu, X, User, Bell } from 'lucide-react';
+import NotificationModal from './NotificationModal';
+import { api } from '../utils/api';
+import { useEffect } from 'react';
+import { io } from 'socket.io-client';
 
-const FarmerNavbar = ({ user, onLogout, onPostJob }) => {
+const FarmerNavbar = ({ user, unreadCount: propUnreadCount, onLogout, onPostJob }) => {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(propUnreadCount || 0);
+
+    useEffect(() => {
+        if (propUnreadCount !== undefined) {
+            setUnreadCount(propUnreadCount);
+        }
+    }, [propUnreadCount]);
+    const [socket, setSocket] = useState(null);
 
     // Fallback user if not provided (though dashboard should provide it)
-    const currentUser = user || { name: 'Farmer', role: 'farmer', location: '' };
+    const currentUser = user || JSON.parse(localStorage.getItem('user')) || { name: 'Farmer', role: 'farmer', location: '' };
+
+    useEffect(() => {
+        const fetchUnread = async () => {
+            try {
+                const data = await api.get('/notifications');
+                setUnreadCount(data.filter(n => !n.read).length);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchUnread();
+
+        const newSocket = io('http://localhost:5000');
+        newSocket.emit('join', currentUser.id);
+        newSocket.on('new-notification', () => {
+            setUnreadCount(prev => prev + 1);
+        });
+        setSocket(newSocket);
+
+        return () => newSocket.disconnect();
+    }, [currentUser.id]);
 
     const navLinks = [
         { path: '/dashboard', label: 'Home', icon: Home },
@@ -59,6 +93,18 @@ const FarmerNavbar = ({ user, onLogout, onPostJob }) => {
                         <p className="text-sm font-semibold text-gray-900">{currentUser.name}</p>
                         <p className="text-xs text-gray-500 capitalize">{currentUser.role}</p>
                     </div>
+
+                    <button 
+                        onClick={() => setShowNotifications(true)}
+                        className="relative p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                    >
+                        <Bell className="h-5 w-5" />
+                        {unreadCount > 0 && (
+                            <span className="absolute top-1 right-1 h-4 w-4 bg-red-600 border-2 border-white rounded-full flex items-center justify-center text-[8px] font-black text-white">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
+                    </button>
 
                     <div 
                         onClick={() => navigate('/farmer/profile')}
@@ -127,10 +173,18 @@ const FarmerNavbar = ({ user, onLogout, onPostJob }) => {
                              >
                                 {currentUser.name ? currentUser.name.charAt(0) : 'F'}
                             </div>
-                            <div>
+                            <div className="flex-1">
                                 <p className="text-sm font-semibold text-gray-900">{currentUser.name}</p>
                                 <p className="text-xs text-gray-500 capitalize">{currentUser.role}</p>
                             </div>
+                            <button onClick={() => setShowNotifications(true)} className="relative p-2 text-gray-400">
+                                <Bell className="h-5 w-5" />
+                                {unreadCount > 0 && (
+                                    <span className="absolute top-1 right-1 h-4 w-4 bg-red-600 border-2 border-white rounded-full flex items-center justify-center text-[8px] font-black text-white">
+                                        {unreadCount}
+                                    </span>
+                                )}
+                            </button>
                         </div>
                         <button 
                             onClick={() => { onLogout(); setIsMenuOpen(false); }}
@@ -141,6 +195,16 @@ const FarmerNavbar = ({ user, onLogout, onPostJob }) => {
                         </button>
                     </div>
                 </div>
+            )}
+            {showNotifications && (
+                <NotificationModal 
+                    userId={currentUser.id} 
+                    socket={socket} 
+                    onClose={() => {
+                        setShowNotifications(false);
+                        setUnreadCount(0); // Reset count on close for now
+                    }} 
+                />
             )}
         </nav>
     );

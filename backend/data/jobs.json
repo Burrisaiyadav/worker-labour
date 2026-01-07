@@ -7,7 +7,8 @@
     "workers": "",
     "cost": "",
     "description": "",
-    "status": "Active",
+    "status": "Completed",
+    "assignedTo": "5829b39b-f59b-49b7-90a7-a7989bf35274",
     "createdAt": "2025-12-18T16:08:54.402Z"
   },
   {
@@ -18,7 +19,39 @@
     "workers": "5",
     "cost": "5000",
     "description": "no",
-    "status": "Active",
+    "status": "Completed",
+    "assignedTo": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "paymentStatus": "Pending",
+    "paymentId": null,
     "createdAt": "2025-12-18T16:16:12.281Z"
+  },
+  {
+    "id": "580905f7-c848-4db2-986a-f8250c44e7ac",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "title": "harvest",
+    "date": "2026-01-07",
+    "workers": "5",
+    "cost": "1000",
+    "description": "Harvest for my field",
+    "status": "Completed",
+    "assignedTo": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "paymentStatus": "Pending",
+    "paymentId": null,
+    "createdAt": "2026-01-06T17:11:31.541Z"
+  },
+  {
+    "id": "0ad01440-cc5b-4ffc-83d1-96ace04fb3d0",
+    "userId": "4df02cea-903c-468b-a35a-ca498ae40b50",
+    "farmerName": "",
+    "title": "",
+    "date": "",
+    "workers": "",
+    "cost": "",
+    "description": "",
+    "location": "Punjab",
+    "image": "",
+    "status": "In Progress",
+    "assignedTo": "cb11308b-506a-4dd5-8408-c13f058f138b",
+    "createdAt": "2026-01-07T09:55:57.795Z"
   }
 ]

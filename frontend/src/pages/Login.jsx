@@ -98,35 +98,30 @@ const Login = () => {
 
         {step === 1 ? (
              <form className="mt-8 space-y-6" onSubmit={onSendOtp}>
-                <div className="rounded-md shadow-sm -space-y-px">
-                    <div className="mb-4">
-                    <label htmlFor="mobile" className="sr-only">
-                        Mobile Number
-                    </label>
+                <div className="space-y-4">
                     <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Phone className="h-5 w-5 text-gray-400" />
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <Phone className="h-6 w-6 text-gray-400" />
                         </div>
                         <input
-                        id="mobile"
-                        name="mobile"
-                        type="tel"
-                        required
-                        className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                        placeholder="Mobile Number"
-                        value={mobile}
-                        onChange={onChange}
+                            id="mobile"
+                            name="mobile"
+                            type="tel"
+                            required
+                            className="appearance-none rounded-2xl relative block w-full pl-12 px-4 py-5 border-2 border-gray-100 placeholder-gray-400 text-gray-900 font-bold text-lg focus:outline-none focus:ring-green-500 focus:border-green-500 transition-all shadow-sm"
+                            placeholder="Mobile Number"
+                            value={mobile}
+                            onChange={onChange}
                         />
-                    </div>
                     </div>
                 </div>
 
                 <div>
                     <button
-                    type="submit"
-                    className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+                        type="submit"
+                        className="group relative w-full h-16 flex justify-center items-center px-4 border border-transparent text-xl font-black uppercase tracking-widest rounded-[2rem] text-white bg-green-600 hover:bg-green-700 shadow-xl shadow-green-100 transition-all active:scale-95"
                     >
-                    Send OTP
+                        Send OTP
                     </button>
                 </div>
             </form>

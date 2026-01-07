@@ -26,11 +26,28 @@ class UserJSON {
         this.experience = data.experience || '';
         this.radius = data.radius || '';
         this.rate = data.rate || '';
-        this.profileImage = data.profileImage || '';
+        this.accountType = data.accountType || 'individual'; // 'individual' or 'group'
+        this.groupMembersCount = data.groupMembersCount || 0;
         this.loginOtp = data.loginOtp;
         this.loginOtpExpire = data.loginOtpExpire ? new Date(data.loginOtpExpire) : undefined;
         this.createdAt = data.createdAt || new Date();
         this.updatedAt = new Date();
+    }
+
+    static async find(query = {}) {
+        const users = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+        let filteredUsers = users;
+
+        if (query.role) {
+            const roleToFind = query.role.toLowerCase();
+            if (roleToFind === 'labour' || roleToFind === 'laborer') {
+                filteredUsers = filteredUsers.filter(u => u.role === 'labour' || u.role === 'laborer');
+            } else {
+                filteredUsers = filteredUsers.filter(u => u.role === roleToFind);
+            }
+        }
+
+        return filteredUsers.map(u => new UserJSON(u));
     }
 
     static async findById(id) {
@@ -44,7 +61,8 @@ class UserJSON {
 
         let foundUser = null;
         if (query.mobile) {
-            foundUser = users.find(u => u.mobile === query.mobile);
+            const searchMobile = query.mobile.trim();
+            foundUser = users.find(u => u.mobile.trim() === searchMobile);
         } else if (query.loginOtp && query.loginOtpExpire) {
             // For Login OTP Verification
             const now = new Date();

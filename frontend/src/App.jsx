@@ -8,48 +8,54 @@ import Register from './pages/Register';
 import FarmerDashboard from './pages/FarmerDashboard';
 import FindLabour from './pages/FindLabour';
 import Messages from './pages/Messages';
-import FarmerProfile from './pages/FarmerProfile';
-
-// ... inside Routes
-          <Route path="/labour/notifications" element={<Notifications />} />
-          
-          {/* Farmer Routes */}
-          <Route path="/farmer/profile" element={<FarmerProfile />} />
 import MyJobs from './pages/MyJobs';
-
-// ... (imports)
+import FarmerProfile from './pages/FarmerProfile';
+import PaymentPage from './pages/PaymentPage';
 import LabourDashboard from './pages/Labour/LabourDashboard';
 import ActiveJobs from './pages/Labour/ActiveJobs';
 import LabourWallet from './pages/Labour/LabourWallet';
 import LabourProfile from './pages/Labour/LabourProfile';
-import ScanQRModal from './components/ScanQRModal'; // We can reuse or wrap this later
+import AttendanceScanner from './pages/Labour/AttendanceScanner';
 import JobHistory from './pages/Labour/JobHistory';
 import Notifications from './pages/Labour/Notifications';
-import AttendanceScanner from './pages/Labour/AttendanceScanner';
+
+import BottomNav from './components/BottomNav';
 
 const Layout = () => {
   const location = useLocation();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const role = user.role || (location.pathname.startsWith('/labour') ? 'labour' : 'farmer');
+
   const hideNavbarRoutes = [
     '/login', 
-    '/register', 
+    '/register'
+  ];
+  
+  const dashboardRoutes = [
     '/dashboard', 
     '/find-labour', 
     '/messages', 
     '/my-jobs',
+    '/farmer/profile',
     '/labour/dashboard',
     '/labour/active-jobs',
     '/labour/wallet',
     '/labour/profile',
     '/labour/scan',
     '/labour/history',
-    '/labour/notifications'
+    '/labour/notifications',
+    '/payment'
   ];
-  const shouldShowNavbar = !hideNavbarRoutes.some(route => location.pathname.startsWith(route));
+
+  const shouldShowNavbar = !hideNavbarRoutes.some(route => location.pathname.startsWith(route)) && 
+                           !dashboardRoutes.some(route => location.pathname.startsWith(route));
+                           
+  const shouldShowBottomNav = dashboardRoutes.some(route => location.pathname.startsWith(route));
 
   return (
     <div className="min-h-screen bg-white">
       {shouldShowNavbar && <Navbar />}
-      <main>
+      <main className={shouldShowBottomNav ? 'pb-20 md:pb-0' : ''}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -58,6 +64,8 @@ const Layout = () => {
           <Route path="/find-labour" element={<FindLabour />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/my-jobs" element={<MyJobs />} />
+          <Route path="/farmer/profile" element={<FarmerProfile />} />
+          <Route path="/payment/:jobId" element={<PaymentPage />} />
           
           {/* Labour Routes */}
           <Route path="/labour/dashboard" element={<LabourDashboard />} />
@@ -70,6 +78,7 @@ const Layout = () => {
         </Routes>
       </main>
       {shouldShowNavbar && <Footer />}
+      {shouldShowBottomNav && <BottomNav role={role} />}
     </div>
   );
 };

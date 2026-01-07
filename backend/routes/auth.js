@@ -5,7 +5,8 @@ const User = require('../models/UserJSON');
 
 // Register
 router.post('/register', async (req, res) => {
-    const { name, role, mobile, location } = req.body;
+    const { name, role, mobile: rawMobile, location, accountType, groupMembersCount } = req.body;
+    const mobile = rawMobile ? rawMobile.trim() : '';
 
     try {
         let user = await User.findOne({ mobile });
@@ -17,7 +18,9 @@ router.post('/register', async (req, res) => {
             name,
             role,
             mobile,
-            location
+            location,
+            accountType,
+            groupMembersCount
         });
 
         await user.save();
@@ -34,7 +37,17 @@ router.post('/register', async (req, res) => {
             { expiresIn: '30d' }, // Longer expiration for mobile app usability
             (err, token) => {
                 if (err) throw err;
-                res.json({ token, user: { id: user.id, name: user.name, mobile: user.mobile, role: user.role } });
+                res.json({
+                    token,
+                    user: {
+                        id: user.id,
+                        name: user.name,
+                        mobile: user.mobile,
+                        role: user.role,
+                        accountType: user.accountType,
+                        groupMembersCount: user.groupMembersCount
+                    }
+                });
             }
         );
     } catch (err) {
@@ -45,7 +58,8 @@ router.post('/register', async (req, res) => {
 
 // Login Step 1: Send OTP
 router.post('/login/send-otp', async (req, res) => {
-    const { mobile } = req.body;
+    const { mobile: rawMobile } = req.body;
+    const mobile = rawMobile ? rawMobile.trim() : '';
 
     try {
         let user = await User.findOne({ mobile });
@@ -74,7 +88,8 @@ router.post('/login/send-otp', async (req, res) => {
 
 // Login Step 2: Verify OTP
 router.post('/login/verify', async (req, res) => {
-    const { mobile, otp } = req.body;
+    const { mobile: rawMobile, otp } = req.body;
+    const mobile = rawMobile ? rawMobile.trim() : '';
 
     try {
         // Find user by mobile first to ensure we are checking the right user
@@ -106,7 +121,17 @@ router.post('/login/verify', async (req, res) => {
             { expiresIn: '30d' },
             (err, token) => {
                 if (err) throw err;
-                res.json({ token, user: { id: user.id, name: user.name, mobile: user.mobile, role: user.role } });
+                res.json({
+                    token,
+                    user: {
+                        id: user.id,
+                        name: user.name,
+                        mobile: user.mobile,
+                        role: user.role,
+                        accountType: user.accountType,
+                        groupMembersCount: user.groupMembersCount
+                    }
+                });
             }
         );
 
@@ -140,6 +165,7 @@ router.put('/profile', auth, async (req, res) => {
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
         const { name, location, skills, experience, radius, rate, phone, gender, farmSize, crops } = req.body;
+        console.log('Updating Profile for User:', req.user.id, 'Data:', req.body);
 
         if (name) user.name = name;
         if (location) user.location = location;
@@ -154,6 +180,19 @@ router.put('/profile', auth, async (req, res) => {
 
         await user.save();
         res.json(user);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// @route   GET /api/auth/labourers
+// @desc    Get all labourers
+// @access  Private
+router.get('/labourers', auth, async (req, res) => {
+    try {
+        const labourers = await User.find({ role: 'labour' });
+        res.json(labourers);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');

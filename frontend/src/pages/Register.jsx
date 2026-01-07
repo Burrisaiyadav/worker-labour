@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Briefcase, Phone, MapPin } from 'lucide-react';
+import { User, Users, Briefcase, Phone, MapPin } from 'lucide-react';
 
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     role: 'farmer', // Default role
     mobile: '',
-    location: ''
+    location: '',
+    accountType: 'individual',
+    groupMembersCount: 1
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -25,7 +27,7 @@ const Register = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, role, mobile, location }),
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
@@ -68,32 +70,79 @@ const Register = () => {
 
         <form className="mt-8 space-y-6" onSubmit={onSubmit}>
           <div className="rounded-md shadow-sm space-y-4">
+          <div className="space-y-4 mb-8">
+            <label className="text-xs font-black text-gray-400 uppercase tracking-widest text-center block">I am a...</label>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, role: 'farmer' })}
+                className={`flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 transition-all ${
+                  role === 'farmer' 
+                  ? 'bg-green-600 border-green-600 text-white shadow-xl shadow-green-100 scale-105' 
+                  : 'bg-white border-gray-100 text-gray-400 grayscale'
+                }`}
+              >
+                <User className="h-10 w-10 mb-2" />
+                <span className="font-black text-xs uppercase tracking-widest">Farmer</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, role: 'labour' })}
+                className={`flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 transition-all ${
+                  role === 'labour' 
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-xl shadow-blue-100 scale-105' 
+                  : 'bg-white border-gray-100 text-gray-400 grayscale'
+                }`}
+              >
+                <Briefcase className="h-10 w-10 mb-2" />
+                <span className="font-black text-xs uppercase tracking-widest">Worker</span>
+              </button>
+            </div>
+            
+            {role === 'labour' && (
+              <div className="flex bg-gray-100 p-2 rounded-2xl mt-4">
+                {['individual', 'group'].map(type => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, accountType: type })}
+                    className={`flex-1 py-4 text-sm font-black rounded-xl capitalize transition-all ${
+                      (formData.accountType || 'individual') === type ? 'bg-white text-green-600 shadow-md' : 'text-gray-500'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
             <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <User className="h-6 w-6 text-gray-400" />
                 </div>
                 <input
                   id="name"
                   name="name"
                   type="text"
                   required
-                  className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                  placeholder="Full Name"
+                  className="appearance-none rounded-2xl relative block w-full pl-12 px-4 py-5 border-2 border-gray-100 placeholder-gray-400 text-gray-900 font-bold text-lg focus:outline-none focus:ring-green-500 shadow-sm"
+                  placeholder={formData.accountType === 'group' ? "Group Name" : "Full Name"}
                   value={name}
                   onChange={onChange}
                 />
             </div>
-            
-             <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-5 w-5 text-gray-400" />
+
+            <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Phone className="h-6 w-6 text-gray-400" />
                 </div>
                 <input
                   id="mobile"
                   name="mobile"
                   type="tel"
                   required
-                  className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                  className="appearance-none rounded-2xl relative block w-full pl-12 px-4 py-5 border-2 border-gray-100 placeholder-gray-400 text-gray-900 font-bold text-lg focus:outline-none focus:ring-green-500 shadow-sm"
                   placeholder="Mobile Number"
                   value={mobile}
                   onChange={onChange}
@@ -101,51 +150,33 @@ const Register = () => {
             </div>
 
             <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MapPin className="h-5 w-5 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <MapPin className="h-6 w-6 text-gray-400" />
                 </div>
                 <select
                   id="location"
                   name="location"
                   required
-                  className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                  className="appearance-none rounded-2xl relative block w-full pl-12 px-4 py-5 border-2 border-gray-100 text-gray-900 font-bold text-lg focus:outline-none focus:ring-green-500 shadow-sm bg-white"
                   value={location}
                   onChange={onChange}
                 >
-                    <option value="" disabled>Select Location</option>
+                    <option value="" disabled>Where do you live?</option>
                     <option value="Punjab">Punjab</option>
                     <option value="Haryana">Haryana</option>
                     <option value="Uttar Pradesh">Uttar Pradesh</option>
                     <option value="Maharashtra">Maharashtra</option>
                     <option value="Madhya Pradesh">Madhya Pradesh</option>
-                    <option value="Other">Other</option>
                 </select>
-            </div>
-
-            <div className="relative">
-              <label htmlFor="role" className="sr-only">Role</label>
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Briefcase className="h-5 w-5 text-gray-400" />
-              </div>
-              <select
-                id="role"
-                name="role"
-                className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                value={role}
-                onChange={onChange}
-              >
-                <option value="farmer">I am a Farmer</option>
-                <option value="labour">I am a Laborer</option>
-              </select>
             </div>
           </div>
 
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+              className="group relative w-full h-16 flex justify-center items-center px-4 border border-transparent text-xl font-black uppercase tracking-widest rounded-[2rem] text-white bg-green-600 hover:bg-green-700 shadow-xl shadow-green-100 transition-all active:scale-95"
             >
-              Sign Up
+              Start Now
             </button>
           </div>
         </form>

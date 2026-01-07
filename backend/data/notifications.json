@@ -1,0 +1,101 @@
+[
+  {
+    "id": "d9329089-84e4-48c5-8b45-2ccd001d0eca",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": true,
+    "createdAt": "2026-01-07T11:00:36.812Z"
+  },
+  {
+    "id": "a10c2cd5-f89e-4f3d-937f-38316b755a5d",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": true,
+    "createdAt": "2026-01-07T11:00:43.608Z"
+  },
+  {
+    "id": "1baf512f-8bef-47b5-82a8-27d32a6e480a",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": true,
+    "createdAt": "2026-01-07T11:13:09.584Z"
+  },
+  {
+    "id": "03f2f083-1844-46a8-a1ef-88e71636acdb",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": true,
+    "createdAt": "2026-01-07T11:16:40.092Z"
+  },
+  {
+    "id": "4bcd5427-5b20-4eb1-bc6c-bed129f185f3",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": true,
+    "createdAt": "2026-01-07T11:30:12.838Z"
+  },
+  {
+    "id": "61738cae-2fd3-47b0-888f-34880e4a788c",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": true,
+    "createdAt": "2026-01-07T11:30:27.504Z"
+  },
+  {
+    "id": "9a49c982-2ea2-489a-8d3e-cc982b6ff868",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": true,
+    "createdAt": "2026-01-07T11:35:22.598Z"
+  },
+  {
+    "id": "6ea3a88b-4867-40d0-aa51-de85fad24176",
+    "userId": "a7e349cd-7a86-4c8d-8758-076dd75afd28",
+    "title": "New Hire Request",
+    "message": "Test Farmer wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": false,
+    "createdAt": "2026-01-07T11:37:16.040Z"
+  },
+  {
+    "id": "291b9c0c-dd35-41d4-b565-5c956bd64360",
+    "userId": "a7e349cd-7a86-4c8d-8758-076dd75afd28",
+    "title": "New Hire Request",
+    "message": "Test Farmer wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": false,
+    "createdAt": "2026-01-07T11:40:32.992Z"
+  },
+  {
+    "id": "c2e1a418-7f4e-41af-bd3d-7dfece8496f5",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": true,
+    "createdAt": "2026-01-07T11:40:40.719Z"
+  },
+  {
+    "id": "661f2595-2520-44bb-aa00-9a7a8d4109a1",
+    "userId": "a7e349cd-7a86-4c8d-8758-076dd75afd28",
+    "title": "New Hire Request",
+    "message": "Test Farmer wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": false,
+    "createdAt": "2026-01-07T11:40:41.789Z"
+  }
+]

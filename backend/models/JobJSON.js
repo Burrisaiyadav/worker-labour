@@ -16,14 +16,18 @@ class JobJSON {
     constructor(data) {
         this.id = data.id || uuidv4();
         this.userId = data.userId; // Link to user
+        this.farmerName = data.farmerName; // Added farmerName
         this.title = data.title;
         this.date = data.date;
         this.workers = data.workers;
         this.cost = data.cost;
         this.description = data.description;
         this.location = data.location;
+        this.image = data.image;
         this.status = data.status || 'Active'; // Active, In Progress, Completed
         this.assignedTo = data.assignedTo || null; // Labour ID
+        this.paymentStatus = data.paymentStatus || 'Pending'; // Pending, Paid
+        this.paymentId = data.paymentId || null;
         this.createdAt = data.createdAt || new Date();
     }
 

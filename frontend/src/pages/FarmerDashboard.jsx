@@ -13,16 +13,21 @@ import {
   MessageCircle,
   PlusCircle,
   QrCode,
-  Scan
+  Scan,
+  Phone
 } from 'lucide-react';
 import Messages from './Messages';
 import PostJobModal from '../components/PostJobModal';
 import ScanQRModal from '../components/ScanQRModal';
 import FarmerNavbar from '../components/FarmerNavbar';
+import JobDetailsModal from '../components/JobDetailsModal';
 import { api } from '../utils/api';
+import { io } from 'socket.io-client';
 
 const FarmerDashboard = () => {
     const [dashboardData, setDashboardData] = useState(null);
+    const [stats, setStats] = useState({ activeJobsCount: 0, pendingAction: 0 }); // Use this for UI
+    const [socket, setSocket] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showMessages, setShowMessages] = useState(false);
@@ -30,8 +35,13 @@ const FarmerDashboard = () => {
 
     const [showScanQR, setShowScanQR] = useState(false);
     const [selectedChatGroup, setSelectedChatGroup] = useState(null);
+    const [selectedOtherId, setSelectedOtherId] = useState(null);
+    const [selectedJobId, setSelectedJobId] = useState(null);
+    const [selectedJob, setSelectedJob] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
+
+    const user = JSON.parse(localStorage.getItem('user')) || { id: 'temp' };
 
     useEffect(() => {
         if (location.state?.openMessages) {
@@ -39,14 +49,31 @@ const FarmerDashboard = () => {
             if (location.state.groupName) {
                 setSelectedChatGroup(location.state.groupName);
             }
-            // Optional: Clear state to prevent reopening on simple refresh? 
-            // navigate(location.pathname, { replace: true, state: {} });
+            if (location.state.jobId) {
+                setSelectedJobId(location.state.jobId);
+            }
         }
     }, [location]);
 
     // Handlers
     const handleFindLabour = () => navigate('/find-labour');
-    const handleMessages = () => setShowMessages(true);
+    const handleMessages = (jobOrWorker = null) => {
+        if (jobOrWorker) {
+            // It's a job object
+            if (jobOrWorker.title || jobOrWorker.status) {
+                setSelectedChatGroup(jobOrWorker.group || jobOrWorker.assignedToName || 'Worker');
+                setSelectedOtherId(jobOrWorker.assignedTo);
+                setSelectedJobId(jobOrWorker.id);
+            } 
+            // It's a worker/labourer object
+            else if (jobOrWorker.name) {
+                setSelectedChatGroup(jobOrWorker.name);
+                setSelectedOtherId(jobOrWorker.id);
+                setSelectedJobId(null);
+            }
+        }
+        setShowMessages(true);
+    };
     const handleMyJobs = () => navigate('/my-jobs');
     const handlePostJob = async (jobData) => {
         try {
@@ -63,12 +90,25 @@ const FarmerDashboard = () => {
     };
     
     // Mock Interactions
-    const handleHire = (name) => {
-        alert(`Request sent to hire ${name}! They will contact you shortly.`);
+    // Hire Interaction
+    const handleHire = async (worker) => {
+        try {
+            await api.post('/notifications', {
+                userId: worker.id,
+                title: 'New Hire Request',
+                message: `${user.name} wants to hire you for a job in ${user.location}. Click to chat!`,
+                type: 'job'
+            });
+            alert(`Hire request sent to ${worker.name}! Starting chat...`);
+            handleMessages(worker);
+        } catch (err) {
+            console.error(err);
+            alert('Failed to send hire request');
+        }
     };
 
-    const handleViewDetails = (jobId) => {
-        alert(`Viewing details for Job ID: ${jobId}`);
+    const handleViewDetails = (job) => {
+        setSelectedJob(job);
     };
 
     const handleViewMap = () => {
@@ -82,14 +122,40 @@ const FarmerDashboard = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                // api utility handles headers and token
                 const data = await api.get('/dashboard/farmer');
                 setDashboardData(data);
+                setStats({
+                    activeJobsCount: data.activeJobs.length,
+                    pendingAction: data.stats.pendingAction
+                });
                 setLoading(false);
+                
+                // Initialize Socket if not already initialized
+                if (!socket) {
+                    const newSocket = io('http://localhost:5000');
+                    newSocket.emit('join', user.id);
+                    
+                    newSocket.on('job-status-updated', (updatedJob) => {
+                        console.log('Job Status Updated:', updatedJob);
+                        api.get('/dashboard/farmer').then(res => {
+                            setDashboardData(res);
+                            setStats({
+                                activeJobsCount: res.activeJobs.length,
+                                pendingAction: res.stats.pendingAction
+                            });
+                        });
+                    });
+
+                    newSocket.on('new-notification', (notif) => {
+                        console.log("New notification received:", notif);
+                        alert(`Notification: ${notif.title}\n${notif.message}`);
+                    });
+
+                    setSocket(newSocket);
+                }
             } catch (err) {
                 console.error("Dashboard Fetch Error:", err);
                 if (err.message === 'Unauthorized') {
-                    // api utility might throw this, or we handle it here
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
                     navigate('/login');
@@ -101,7 +167,11 @@ const FarmerDashboard = () => {
         };
 
         fetchDashboardData();
-    }, [navigate]);
+
+        return () => {
+            if (socket) socket.disconnect();
+        };
+    }, [navigate, user.id]); // Removed socket dependency to avoid infinite loop
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -125,14 +195,19 @@ const FarmerDashboard = () => {
         );
     }
 
-    const { user, activeJobs, nearbyGroups, stats } = dashboardData;
+    if (!dashboardData) return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        </div>
+    );
+
+    const { user: currentUserData, activeJobs, nearbyGroups, stats: dashboardStats } = dashboardData;
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans">
             {/* Top Navigation Bar */}
-            {/* Top Navigation Bar */}
             <FarmerNavbar 
-                user={user} 
+                user={currentUserData} 
                 onLogout={handleLogout} 
                 onPostJob={() => setShowPostJob(true)} 
             />
@@ -142,85 +217,66 @@ const FarmerDashboard = () => {
                 <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                            Welcome back, <span className="text-green-600">{user.name.split(' ')[0]}</span>!
-                            <button onClick={handleMessages} className="p-2 bg-green-50 text-green-600 rounded-full hover:bg-green-100 transition-colors relative" title="Messages">
-                                <MessageCircle className="h-6 w-6" />
-                                <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-red-500 border-2 border-white rounded-full"></span>
-                            </button>
+                            Welcome back, <span className="text-green-600">{user?.name?.split(' ')[0] || 'Farmer'}</span>!
                         </h1>
                         <p className="text-gray-500 mt-2 flex items-center gap-2">
                             <MapPin className="h-4 w-4" />
-                            {user.location || 'Location not set'}
+                            {user?.location || 'Location not set'}
                             <span className="h-1 w-1 bg-gray-300 rounded-full mx-1"></span>
                             {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </p>
                     </div>
 
-                    {/* Quick Action Cards */}
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => setShowPostJob(true)} className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-green-200 transition-all group">
-                            <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-100 transition-colors">
-                                <PlusCircle className="h-5 w-5" />
-                            </div>
-                            <div className="text-left">
-                                <p className="text-xs text-gray-400 font-medium">Create New</p>
-                                <p className="text-sm font-bold text-gray-900">Post Job</p>
-                            </div>
-                        </button>
-                        
-                        <button onClick={() => setShowScanQR(true)} className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-green-200 transition-all group">
-                            <div className="h-8 w-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 group-hover:bg-purple-100 transition-colors">
-                                <QrCode className="h-5 w-5" />
-                            </div>
-                            <div className="text-left">
-                                <p className="text-xs text-gray-400 font-medium">Worker ID</p>
-                                <p className="text-sm font-bold text-gray-900">Scan QR</p>
-                            </div>
-                        </button>
-                    </div>
+                {/* Massive Primary Actions */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <button 
+                        onClick={handleFindLabour}
+                        className="h-32 bg-green-600 text-white rounded-[2rem] shadow-xl shadow-green-100 flex items-center justify-center gap-6 px-8 hover:bg-green-700 transition-all hover:scale-[1.02] active:scale-95 group overflow-hidden relative"
+                    >
+                        <div className="h-16 w-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm group-hover:rotate-12 transition-transform">
+                            <Search className="h-8 w-8 text-white" />
+                        </div>
+                        <div className="text-left">
+                            <p className="text-xl font-black uppercase tracking-tighter leading-tight">Find<br/>Workers</p>
+                            <p className="text-xs text-green-100 font-bold uppercase tracking-widest mt-1 opacity-70">Nearby You</p>
+                        </div>
+                        <div className="absolute -right-4 -bottom-4 h-24 w-24 bg-white/10 rounded-full"></div>
+                    </button>
+
+                    <button 
+                        onClick={() => setShowPostJob(true)}
+                        className="h-32 bg-blue-600 text-white rounded-[2rem] shadow-xl shadow-blue-100 flex items-center justify-center gap-6 px-8 hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-95 group overflow-hidden relative"
+                    >
+                        <div className="h-16 w-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm group-hover:-rotate-12 transition-transform">
+                            <PlusCircle className="h-8 w-8 text-white" />
+                        </div>
+                        <div className="text-left">
+                            <p className="text-xl font-black uppercase tracking-tighter leading-tight">Post New<br/>Job</p>
+                            <p className="text-xs text-blue-100 font-bold uppercase tracking-widest mt-1 opacity-70">Get Work Done</p>
+                        </div>
+                        <div className="absolute -right-4 -bottom-4 h-24 w-24 bg-white/10 rounded-full"></div>
+                    </button>
                 </div>
 
-                {/* Quick Stats Grid */}
-                <div className="grid grid-cols-3 gap-3 md:gap-6 mb-8">
-                    {/* Active Jobs Card */}
-                    <div onClick={handleMyJobs} className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer flex flex-col items-center md:items-start justify-center md:justify-start">
-                        <div className="flex justify-between items-start w-full mb-0 md:mb-4">
-                            <div className="p-3 bg-blue-50 rounded-xl mx-auto md:mx-0">
-                                <Activity className="h-6 w-6 text-blue-600" />
-                            </div>
-                            <span className="hidden md:block bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full">{stats.activeJobsCount} Active</span>
-                        </div>
-                        <h3 className="hidden md:block text-gray-500 text-sm font-medium">Active Jobs</h3>
-                        <p className="text-lg md:text-2xl font-bold text-gray-900 mt-2 md:mt-1">{stats.activeJobsCount}</p>
-                    </div>
-
-                    {/* Total Spent Card - Static */}
-                    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center md:items-start justify-center md:justify-start">
-                         <div className="flex justify-between items-start w-full mb-0 md:mb-4">
-                            <div className="p-3 bg-orange-50 rounded-xl mx-auto md:mx-0">
-                                <DollarSign className="h-6 w-6 text-orange-600" />
-                            </div>
-                        </div>
-                        <h3 className="hidden md:block text-gray-500 text-sm font-medium">Total Spent</h3>
-                        <p className="hidden md:block text-2xl font-bold text-gray-900 mt-1">₹{stats.totalSpent.toLocaleString('en-IN')}</p>
-						<p className="md:hidden text-sm font-bold text-gray-900 mt-2">₹{stats.totalSpent > 1000 ? (stats.totalSpent/1000).toFixed(1) + 'k' : stats.totalSpent}</p>
-                    </div>
-
-                    {/* Find Labour Card */}
-                    <div onClick={handleFindLabour} className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer bg-gradient-to-br from-green-500 to-green-600 text-white group relative overflow-hidden flex flex-col items-center md:items-start justify-center md:justify-start">
-                        <div className="relative z-10 w-full flex flex-col items-center md:items-start">
-                            <div className="flex justify-between items-start w-full mb-0 md:mb-4">
-                                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm mx-auto md:mx-0">
-                                    <Search className="h-6 w-6 text-white" />
-                                </div>
-                            </div>
-                            <h3 className="hidden md:block text-green-50 text-sm font-medium">Need workers?</h3>
-                            <p className="hidden md:block text-2xl font-bold text-white mt-1 text-left w-full">Find Labour</p>
-                            <p className="md:hidden text-sm font-bold text-white mt-2">Find</p>
-                        </div>
-                        {/* Decorative Circle */}
-                        <div className="absolute -right-6 -bottom-6 h-32 w-32 bg-white/10 rounded-full group-hover:scale-110 transition-transform duration-300"></div>
-                    </div>
+                {/* Secondary Fast Actions */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+                    <button onClick={() => setShowScanQR(true)} className="p-4 bg-white border-2 border-purple-50 rounded-2xl flex flex-col items-center gap-2 hover:border-purple-200 transition-all shadow-sm">
+                        <QrCode className="h-6 w-6 text-purple-600" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Attendance</span>
+                    </button>
+                    <button onClick={handleMyJobs} className="p-4 bg-white border-2 border-orange-50 rounded-2xl flex flex-col items-center gap-2 hover:border-orange-200 transition-all shadow-sm">
+                        <Activity className="h-6 w-6 text-orange-600" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">My Jobs ({stats.activeJobsCount})</span>
+                    </button>
+                    <button onClick={() => setShowMessages(true)} className="p-4 bg-white border-2 border-green-50 rounded-2xl flex flex-col items-center gap-2 hover:border-green-200 transition-all shadow-sm">
+                        <MessageCircle className="h-6 w-6 text-green-600" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Chats</span>
+                    </button>
+                    <button onClick={handleViewMap} className="p-4 bg-white border-2 border-indigo-50 rounded-2xl flex flex-col items-center gap-2 hover:border-indigo-200 transition-all shadow-sm">
+                        <MapPin className="h-6 w-6 text-indigo-600" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Live Map</span>
+                    </button>
+                </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -249,37 +305,44 @@ const FarmerDashboard = () => {
                                     <div className="flex-1 flex flex-col justify-between">
                                         <div>
                                             <div className="flex justify-between items-start">
-                                                <h3 className="text-lg font-bold text-gray-900">{job.title}</h3>
-                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                                    job.status === 'In Progress' ? 'bg-green-100 text-green-700' : 
-                                                    job.status === 'Scheduled' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                                                <h3 className="text-xl font-black text-gray-900 tracking-tight">{job.title}</h3>
+                                                <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${
+                                                    job.status === 'In Progress' ? 'bg-green-600 text-white' : 
+                                                    job.status === 'Scheduled' ? 'bg-blue-600 text-white' : 'bg-gray-400 text-white'
                                                 }`}>
                                                     {job.status}
                                                 </span>
                                             </div>
-                                            <p className="text-gray-500 text-sm mt-1 mb-3">Managed by: <span className="text-gray-900 font-medium">{job.group}</span></p>
+                                            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-2">Team: <span className="text-gray-900">{job.group || job.assignedToName || 'Wait...'}</span></p>
                                             
-                                            <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                                                <div className="flex items-center gap-1">
-                                                    <Calendar className="h-4 w-4 text-gray-400" />
-                                                    {new Date(job.date).toLocaleDateString()}
+                                            <div className="flex flex-wrap gap-4 mt-4">
+                                                <div className="bg-gray-50 px-3 py-2 rounded-xl flex items-center gap-2 border border-gray-100">
+                                                    <Calendar className="h-4 w-4 text-green-600" />
+                                                    <span className="text-xs font-black text-gray-700 uppercase tracking-tighter">{new Date(job.date).toLocaleDateString()}</span>
                                                 </div>
-                                                <div className="flex items-center gap-1">
-                                                    <Users className="h-4 w-4 text-gray-400" />
-                                                    {job.workers} Workers
+                                                <div className="bg-gray-50 px-3 py-2 rounded-xl flex items-center gap-2 border border-gray-100">
+                                                    <Users className="h-4 w-4 text-green-600" />
+                                                    <span className="text-xs font-black text-gray-700 uppercase tracking-tighter">{job.workers} People</span>
                                                 </div>
-                                                <div className="flex items-center gap-1">
-                                                    <DollarSign className="h-4 w-4 text-gray-400" />
-                                                    ₹{job.cost.toLocaleString()}
+                                                <div className="bg-gray-50 px-3 py-2 rounded-xl flex items-center gap-2 border border-gray-100">
+                                                    <DollarSign className="h-4 w-4 text-green-600" />
+                                                    <span className="text-sm font-black text-green-700 uppercase tracking-tighter">₹{job.cost.toLocaleString()}</span>
                                                 </div>
                                             </div>
                                         </div>
                                         
-                                        <div className="mt-4 pt-4 border-t border-gray-100 flex gap-3">
-
-                                            <button onClick={handleMessages} className="flex-1 py-2 px-4 bg-green-50 text-green-700 rounded-lg text-sm font-semibold hover:bg-green-100 transition-colors">
-                                                Message Group
+                                         <div className="mt-6 flex gap-3">
+                                            <button onClick={() => handleMessages(job)} className="flex-1 h-12 bg-white border-2 border-green-600 text-green-700 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-green-50 transition-all flex items-center justify-center gap-2">
+                                                <MessageCircle className="h-5 w-5" /> Chat
                                             </button>
+                                            {job.assignedToPhone && (
+                                                <a 
+                                                    href={`tel:${job.assignedToPhone}`}
+                                                    className="flex-1 h-12 bg-green-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-100"
+                                                >
+                                                    <Phone className="h-5 w-5" /> Call
+                                                </a>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -287,35 +350,43 @@ const FarmerDashboard = () => {
                         )}
                     </div>
 
-                    {/* Right Column: Suggested Groups */}
+                    {/* Right Column: Suggested Workers */}
                     <div className="space-y-6">
                         <div className="flex justify-between items-end">
-                            <h2 className="text-xl font-bold text-gray-900">Nearby Groups</h2>
+                            <h2 className="text-xl font-bold text-gray-900">Nearby Workers</h2>
                             <button onClick={handleViewMap} className="text-green-600 text-sm font-semibold hover:underline">View Map</button>
                         </div>
                         
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                            {nearbyGroups.map((group, index) => (
-                                <div key={group.id} className={`p-4 flex items-center justify-between hover:bg-gray-50 transition-colors ${index !== nearbyGroups.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm">
-                                            {group.name.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <h4 className="font-semibold text-gray-900 text-sm">{group.name}</h4>
-                                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                                                <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                                                <span>{group.rating}</span>
-                                                <span className="text-gray-300">•</span>
-                                                <span>{group.members} Members</span>
+                            {nearbyGroups.length === 0 ? (
+                                <p className="p-8 text-center text-gray-400 italic text-sm">No workers found nearby.</p>
+                            ) : (
+                                nearbyGroups.map((worker, index) => (
+                                    <div key={worker.id} className={`p-4 flex items-center justify-between hover:bg-gray-50 transition-colors ${index !== nearbyGroups.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-sm">
+                                                {worker.name ? worker.name.charAt(0) : 'W'}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold text-gray-900 text-sm">{worker.name || 'Anonymous'}</h4>
+                                                <div className="flex items-center gap-1 text-xs text-gray-500">
+                                                    <MapPin className="h-3 w-3 text-gray-400" />
+                                                    <span>{worker.location || 'Local'}</span>
+                                                    {worker.rate && (
+                                                        <>
+                                                            <span className="text-gray-300">•</span>
+                                                            <span className="font-medium text-green-600">₹{worker.rate}/day</span>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
+                                         <button onClick={() => handleHire(worker)} className="text-green-600 border border-green-200 hover:bg-green-50 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors">
+                                            Hire Now
+                                        </button>
                                     </div>
-                                    <button onClick={() => handleHire(group.name)} className="text-green-600 border border-green-200 hover:bg-green-50 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors">
-                                        Hire
-                                    </button>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
 
                         {/* Promo / Tip Card */}
@@ -335,13 +406,19 @@ const FarmerDashboard = () => {
             {showMessages && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="relative bg-transparent w-full max-w-sm h-full max-h-[600px] shadow-2xl rounded-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <Messages onClose={() => setShowMessages(false)} />
+                        <Messages 
+                            onClose={() => { setShowMessages(false); setSelectedJobId(null); setSelectedChatGroup(null); setSelectedOtherId(null); }} 
+                            initialGroupName={selectedChatGroup}
+                            initialOtherId={selectedOtherId}
+                            jobId={selectedJobId}
+                        />
                     </div>
                 </div>
             )}
             {/* Other Modals */}
             {showPostJob && <PostJobModal onClose={() => setShowPostJob(false)} onSubmit={handlePostJob} />}
             {showScanQR && <ScanQRModal onClose={() => setShowScanQR(false)} />}
+            {selectedJob && <JobDetailsModal job={selectedJob} onClose={() => setSelectedJob(null)} />}
         </div>
     );
 };

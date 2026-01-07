@@ -1,15 +1,43 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Briefcase, Wallet, User, LogOut, Bell, Menu, X } from 'lucide-react';
+import { Home, Briefcase, Activity, Clock, User, LogOut, Bell, Menu, X } from 'lucide-react';
+import NotificationModal from './NotificationModal';
+import { api } from '../utils/api';
+import { useEffect } from 'react';
+import { io } from 'socket.io-client';
 
 const LabourNavbar = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [socket, setSocket] = useState(null);
     
     // Retrieve user from local storage safely
     const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : { name: 'Worker', role: 'labour' };
+    const user = userStr ? JSON.parse(userStr) : { name: 'Worker', role: 'labour', id: 'temp' };
+
+    useEffect(() => {
+        const fetchUnread = async () => {
+            try {
+                const data = await api.get('/notifications');
+                setUnreadCount(data.filter(n => !n.read).length);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchUnread();
+
+        const newSocket = io('http://localhost:5000');
+        newSocket.emit('join', user.id);
+        newSocket.on('new-notification', () => {
+            setUnreadCount(prev => prev + 1);
+        });
+        setSocket(newSocket);
+
+        return () => newSocket.disconnect();
+    }, [user.id]);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -20,7 +48,7 @@ const LabourNavbar = () => {
     const navLinks = [
         { path: '/labour/dashboard', label: 'Home', icon: Home },
         { path: '/labour/active-jobs', label: 'Active Jobs', icon: Briefcase },
-        { path: '/labour/wallet', label: 'Wallet', icon: Wallet },
+        { path: '/labour/history', label: 'Job History', icon: Clock },
         { path: '/labour/profile', label: 'Profile', icon: User },
     ];
 
@@ -58,21 +86,27 @@ const LabourNavbar = () => {
                 {/* Right Side Actions */}
                 <div className="hidden md:flex items-center gap-6">
                     <button 
-                        onClick={() => location.pathname === '/labour/notifications' ? navigate('/labour/dashboard') : navigate('/labour/notifications')}
+                        onClick={() => setShowNotifications(true)}
                         className={`relative p-2 rounded-full transition-colors ${
-                            location.pathname === '/labour/notifications' 
+                            showNotifications 
                             ? 'text-green-600 bg-green-50' 
                             : 'text-gray-400 hover:text-green-600 hover:bg-gray-50'
                         }`}
                     >
                         <Bell className="h-5 w-5" />
-                        <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full border border-white"></span>
+                        {unreadCount > 0 && (
+                            <span className="absolute top-1 right-1 h-4 w-4 bg-red-600 border-2 border-white rounded-full flex items-center justify-center text-[8px] font-black text-white">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
                     </button>
 
                     <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
                         <div className="text-right hidden sm:block">
                             <p className="text-sm font-semibold text-gray-900">{user.name}</p>
-                            <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+                            <p className="text-xs text-gray-500 capitalize">
+                                {user.accountType === 'group' ? `Group Labour (${user.groupMembersCount || 0})` : user.role}
+                            </p>
                         </div>
 
                         <div 
@@ -95,15 +129,19 @@ const LabourNavbar = () => {
                 {/* Mobile Menu Button */}
                 <div className="md:hidden flex items-center gap-4">
                      <button 
-                        onClick={() => location.pathname === '/labour/notifications' ? navigate('/labour/dashboard') : navigate('/labour/notifications')}
+                        onClick={() => setShowNotifications(true)}
                         className={`relative p-2 rounded-full transition-colors ${
-                            location.pathname === '/labour/notifications' 
+                            showNotifications 
                             ? 'text-green-600 bg-green-50' 
                             : 'text-gray-400 hover:text-green-600 hover:bg-gray-50'
                         }`}
                     >
                         <Bell className="h-5 w-5" />
-                        <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full border border-white"></span>
+                        {unreadCount > 0 && (
+                            <span className="absolute top-1 right-1 h-4 w-4 bg-red-600 border-2 border-white rounded-full flex items-center justify-center text-[8px] font-black text-white">
+                                {unreadCount}
+                            </span>
+                        )}
                     </button>
                     <button 
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -144,7 +182,9 @@ const LabourNavbar = () => {
                             </div>
                             <div>
                                 <p className="text-sm font-semibold text-gray-900">{user.name}</p>
-                                <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+                                <p className="text-xs text-gray-500 capitalize">
+                                    {user.accountType === 'group' ? `Group Labour (${user.groupMembersCount || 0})` : user.role}
+                                </p>
                             </div>
                         </div>
                         <button 
@@ -156,6 +196,16 @@ const LabourNavbar = () => {
                         </button>
                     </div>
                 </div>
+            )}
+            {showNotifications && (
+                <NotificationModal 
+                    userId={user.id} 
+                    socket={socket} 
+                    onClose={() => {
+                        setShowNotifications(false);
+                        setUnreadCount(0);
+                    }} 
+                />
             )}
         </nav>
     );

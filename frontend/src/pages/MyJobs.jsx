@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Calendar, Users, DollarSign, Plus } from 'lucide-react';
 import PostJobModal from '../components/PostJobModal';
+import JobDetailsModal from '../components/JobDetailsModal';
 import { api } from '../utils/api';
 
 const MyJobs = () => {
@@ -10,6 +11,7 @@ const MyJobs = () => {
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [selectedJob, setSelectedJob] = useState(null);
 
     React.useEffect(() => {
         fetchJobs();
@@ -40,8 +42,8 @@ const MyJobs = () => {
         }
     };
 
-    const handleMessageGroup = (groupName) => {
-        navigate('/dashboard', { state: { openMessages: true, groupName } });
+    const handleMessageGroup = (job) => {
+        navigate('/dashboard', { state: { openMessages: true, groupName: job.group || job.farmerName, jobId: job.id } });
     };
 
     if (loading) return <div className="p-8 text-center">Loading jobs...</div>;
@@ -105,10 +107,13 @@ const MyJobs = () => {
                             </div>
                             
                             <div className="mt-4 pt-4 border-t border-gray-100 flex gap-3">
-                                <button className="flex-1 py-2 px-4 bg-gray-50 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors">
+                                <button 
+                                    onClick={() => setSelectedJob(job)}
+                                    className="flex-1 py-2 px-4 bg-gray-50 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors"
+                                >
                                     Details
                                 </button>
-                                <button onClick={() => handleMessageGroup(job.group)} className="flex-1 py-2 px-4 bg-green-50 text-green-700 rounded-lg text-sm font-semibold hover:bg-green-100 transition-colors">
+                                <button onClick={() => handleMessageGroup(job)} className="flex-1 py-2 px-4 bg-green-50 text-green-700 rounded-lg text-sm font-semibold hover:bg-green-100 transition-colors">
                                     Message Group
                                 </button>
                             </div>
@@ -117,6 +122,7 @@ const MyJobs = () => {
                 ))}
             </div>
             {showPostJob && <PostJobModal onClose={() => setShowPostJob(false)} onSubmit={handlePostJob} />}
+            {selectedJob && <JobDetailsModal job={selectedJob} onClose={() => setSelectedJob(null)} />}
         </div>
     );
 };

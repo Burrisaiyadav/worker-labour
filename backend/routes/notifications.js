@@ -62,14 +62,21 @@ router.put('/read-all', auth, async (req, res) => {
 // @access  Private
 router.post('/', auth, async (req, res) => {
     try {
-        const { title, message, type } = req.body;
+        const { userId, title, message, type } = req.body;
         const newNotif = new Notification({
-            userId: req.user.id,
+            userId: userId || req.user.id, // target specified or fallback to self
             title,
             message,
             type
         });
         await newNotif.save();
+
+        // Socket Broadcast
+        const io = req.app.get('io');
+        if (io) {
+            io.to(newNotif.userId).emit('new-notification', newNotif);
+        }
+
         res.json(newNotif);
     } catch (err) {
         console.error(err.message);
