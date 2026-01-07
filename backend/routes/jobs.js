@@ -171,6 +171,21 @@ router.post('/attendance', auth, async (req, res) => {
         });
         await newAttendance.save();
 
+        // Rapido Flow: Find the active job for this labourer and mark it as verified
+        const allJobs = await Job.find({});
+        const activeJob = allJobs.find(j =>
+            j.assignedTo === labourId &&
+            j.userId === farmer.id &&
+            j.status === 'In Progress'
+        );
+
+        if (activeJob) {
+            activeJob.verified = true;
+            activeJob.arrivedAt = new Date();
+            await activeJob.save();
+            console.log(`Job ${activeJob.id} verified via QR scan`);
+        }
+
         console.log(`Attendance saved: ${labourer.name} by ${farmer.name}`);
 
         // Create notification for labourer
@@ -178,16 +193,22 @@ router.post('/attendance', auth, async (req, res) => {
         const newNotif = new Notification({
             userId: labourId,
             title: 'Attendance Marked',
-            message: `${farmer.name} marked your attendance for today.`,
+            message: `${farmer.name} marked your attendance. You can now start the work!`,
             type: 'job'
         });
         await newNotif.save();
         io.to(labourId).emit('new-notification', newNotif);
 
+        // Also notify via specialized event for UI update
+        if (activeJob) {
+            io.to(labourId).emit('job-verified', activeJob);
+        }
+
         res.json({
             success: true,
             msg: `Attendance marked for ${labourer.name}`,
-            labourerName: labourer.name
+            labourerName: labourer.name,
+            jobVerified: !!activeJob
         });
     } catch (err) {
         console.error(err.message);

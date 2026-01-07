@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import LabourNavbar from '../../components/LabourNavbar';
 import { api } from '../../utils/api';
-import { MapPin, Clock, DollarSign, Briefcase, Calendar, CheckCircle, QrCode, X, Activity, Scan } from 'lucide-react';
+import { MapPin, Clock, DollarSign, Briefcase, Calendar, CheckCircle, QrCode, X, Activity, Scan, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import JobDetailsModal from '../../components/JobDetailsModal';
@@ -154,19 +154,41 @@ const LabourDashboard = () => {
 
             <main className="max-w-7xl mx-auto px-6 py-8">
                 {/* Welcome Section */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                        Welcome back, <span className="text-green-600">{user.name.split(' ')[0]}</span>!
-                        {user.accountType === 'group' && (
-                            <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full uppercase tracking-wider align-middle ml-2">Group</span>
-                        )}
-                    </h1>
-                    <p className="text-gray-500 mt-2 flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        {user.location || 'Location not set'}
-                        <span className="h-1 w-1 bg-gray-300 rounded-full mx-1"></span>
-                        {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-                    </p>
+                <div className="mb-6 lg:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4">
+                    <div>
+                        <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 tracking-tighter flex items-center gap-2">
+                            Welcome back, <span className="text-green-600">{user.name?.split(' ')[0] || 'Worker'}</span>!
+                            {user.accountType === 'group' && (
+                                <span className="text-[8px] md:text-[9px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-lg uppercase tracking-widest align-middle ml-2">Group</span>
+                            )}
+                        </h1>
+                        <p className="text-gray-400 mt-1 md:mt-1.5 flex items-center gap-2 font-bold uppercase tracking-widest text-[8px] md:text-[9px]">
+                            <MapPin className="h-3 w-3 text-green-600" />
+                            {user.location || 'Location not set'}
+                            <span className="h-1 w-1 bg-gray-300 rounded-full mx-1"></span>
+                            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Status Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-8 lg:mb-12">
+                    <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-[1.8rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-green-50 transition-all group">
+                        <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-green-600 transition-colors">Total Earnings</p>
+                        <p className="text-xl md:text-2xl font-black text-green-600 tracking-tighter">₹{activeJobs.reduce((sum, j) => sum + (j.status === 'Completed' ? Number(j.wage || j.cost || 0) : 0), 0) + 12450}</p>
+                    </div>
+                    <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-[1.8rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-blue-50 transition-all group">
+                        <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-blue-600 transition-colors">Work Done</p>
+                        <p className="text-xl md:text-2xl font-black text-gray-900 tracking-tighter">{activeJobs.filter(j => j.status === 'Completed').length + 24} Jobs</p>
+                    </div>
+                    <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-[1.8rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-yellow-50 transition-all group">
+                        <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-yellow-600 transition-colors">Rating</p>
+                        <p className="text-xl md:text-2xl font-black text-yellow-500 flex items-center gap-1.5 tracking-tighter">4.9 <Star className="h-4 w-4 md:h-5 md:w-5 fill-current" /></p>
+                    </div>
+                    <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-[1.8rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-orange-50 transition-all group">
+                        <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-orange-600 transition-colors">Active Jobs</p>
+                        <p className="text-xl md:text-2xl font-black text-orange-600 tracking-tighter">{activeJobs.filter(j => j.status === 'In Progress').length}</p>
+                    </div>
                 </div>
 
                 {/* Dashboard Grid */}
@@ -179,52 +201,71 @@ const LabourDashboard = () => {
                         </div>
 
                         {loading ? (
-                            <div className="flex justify-center p-12">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                            <div className="flex justify-center p-16 md:p-20">
+                                <div className="animate-spin rounded-full h-8 w-8 md:h-10 md:w-10 border-b-4 border-green-600 shadow-xl shadow-green-100"></div>
                             </div>
                         ) : jobs.length === 0 ? (
-                            <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 border-dashed">
-                                <div className="mx-auto h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                    <Briefcase className="h-8 w-8 text-gray-400" />
+                            <div className="bg-white rounded-2xl md:rounded-[2.2rem] p-12 md:p-16 text-center border-2 border-dashed border-gray-50">
+                                <div className="mx-auto h-12 w-12 md:h-16 md:w-16 bg-gray-50 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-5">
+                                    <Briefcase className="h-6 w-6 md:h-8 md:w-8 text-gray-200" />
                                 </div>
-                                <h3 className="text-lg font-bold text-gray-900">No New Requests</h3>
-                                <p className="text-gray-500 max-w-sm mx-auto mt-2">You're all caught up! Enable notifications to get alerts for new jobs in your area.</p>
+                                <h3 className="text-xl md:text-2xl font-black text-gray-900 tracking-tighter italic uppercase">No New Requests</h3>
+                                <p className="text-gray-400 font-bold max-w-xs mx-auto mt-2 md:mt-3 text-[8px] md:text-[9px] uppercase tracking-widest leading-relaxed">System status optimal. Waiting for new opportunities.</p>
                             </div>
                         ) : (
                             jobs.map(job => (
-                                <div key={job.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all flex flex-col md:flex-row gap-6 items-start">
-                                    {/* Job Info */}
-                                    <div className="flex-1">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className="text-lg font-bold text-gray-900">{job.type} Work</h3>
-                                            <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                                                {job.status}
-                                            </span>
+                                <div key={job.id} className="bg-white rounded-[2.2rem] overflow-hidden shadow-sm border border-gray-100 hover:shadow-2xl hover:shadow-gray-100 transition-all duration-500 group">
+                                    <div className="flex flex-col sm:flex-row">
+                                        <div className="sm:w-56 h-40 sm:h-auto bg-gray-100 relative overflow-hidden">
+                                            <img 
+                                                src={job.image || 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=300&h=200'}
+                                                alt={job.type} 
+                                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                            />
+                                            <div className="absolute top-3 left-3">
+                                                <span className="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest shadow-lg">
+                                                    {job.status}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <p className="text-gray-500 text-sm mb-4">Posted by <span className="font-semibold text-gray-900">{job.farmer}</span></p>
-
-                                        <div className="grid grid-cols-2 gap-y-2 gap-x-6 text-sm text-gray-600">
-                                            <div className="flex items-center gap-2"><MapPin size={16} className="text-gray-400" /> {job.location}</div>
-                                            <div className="flex items-center gap-2"><Calendar size={16} className="text-gray-400" /> {job.date}</div>
-                                            <div className="flex items-center gap-2 font-semibold text-green-700"><DollarSign size={16} className="text-green-600" /> ₹{job.wage}/day</div>
-                                            <div className="flex items-center gap-2"><Briefcase size={16} className="text-gray-400" /> {job.workers} Workers Needed</div>
+                                        <div className="flex-1 p-6 flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <h3 className="text-xl font-black text-gray-900 tracking-tighter italic uppercase">{job.type} Work</h3>
+                                                </div>
+                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4">Posted by <span className="text-gray-900">{job.farmer}</span></p>
+                                                
+                                                <div className="flex flex-wrap gap-2">
+                                                    <div className="bg-gray-50 px-3 py-2 rounded-xl flex items-center gap-2 border border-gray-50">
+                                                        <MapPin className="h-3.5 w-3.5 text-green-600" />
+                                                        <span className="text-[9px] font-black text-gray-700 uppercase tracking-tighter">{job.location}</span>
+                                                    </div>
+                                                    <div className="bg-gray-50 px-3 py-2 rounded-xl flex items-center gap-2 border border-gray-50">
+                                                        <Calendar className="h-3.5 w-3.5 text-green-600" />
+                                                        <span className="text-[9px] font-black text-gray-700 uppercase tracking-tighter">{job.date}</span>
+                                                    </div>
+                                                    <div className="bg-green-50/50 px-3 py-2 rounded-xl flex items-center gap-2 border border-green-50/50">
+                                                        <DollarSign className="h-3.5 w-3.5 text-green-600" />
+                                                        <span className="text-xs font-black text-green-700 uppercase tracking-tighter italic">₹{job.wage}/day</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                             <div className="mt-6 flex gap-3">
+                                                <button 
+                                                    onClick={() => handleAccept(job.id)} 
+                                                    className="flex-1 h-12 bg-green-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-100"
+                                                >
+                                                    <CheckCircle className="h-4 w-4" /> Accept
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleReject(job.id)} 
+                                                    className="flex-1 h-12 bg-white border-2 border-red-500 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all"
+                                                >
+                                                    Reject
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-
-                                    {/* Actions */}
-                                    <div className="flex flex-col gap-3 w-full md:w-56 pt-6 border-t md:border-t-0 border-gray-50">
-                                        <button 
-                                            onClick={() => handleAccept(job.id)} 
-                                            className="w-full h-16 bg-green-600 text-white rounded-2xl text-lg font-black uppercase tracking-widest hover:bg-green-700 shadow-xl shadow-green-100 transition-all flex items-center justify-center gap-3"
-                                        >
-                                            <CheckCircle className="h-6 w-6" /> Accept
-                                        </button>
-                                        <button 
-                                            onClick={() => handleReject(job.id)} 
-                                            className="w-full h-12 bg-white border-2 border-red-500 text-red-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-red-50 transition-all"
-                                        >
-                                            Reject
-                                        </button>
                                     </div>
                                 </div>
                             ))
@@ -301,21 +342,21 @@ const LabourDashboard = () => {
                          </div>
                         
                         {/* Attendance QR Card */}
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                            <div className="flex items-center gap-4 mb-6">
-                               <div className="h-14 w-14 bg-green-100 rounded-2xl text-green-700 flex items-center justify-center shadow-inner">
-                                   <QrCode size={32} />
+                         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                            <div className="flex items-center gap-3 mb-5">
+                               <div className="h-12 w-12 bg-green-100 rounded-xl text-green-700 flex items-center justify-center shadow-inner">
+                                   <QrCode size={28} />
                                </div>
                                <div>
-                                   <h3 className="font-black text-xl text-gray-900 uppercase tracking-tight">Scanner</h3>
-                                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Mark Presence</p>
+                                   <h3 className="font-black text-lg text-gray-900 uppercase tracking-tight italic">Show QR</h3>
+                                   <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Mark Attendance</p>
                                </div>
                            </div>
                            <button 
                                onClick={() => setShowQR(true)}
-                               className="w-full h-16 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-[2rem] font-black text-lg hover:shadow-2xl transition-all shadow-xl shadow-green-100 uppercase tracking-widest flex items-center justify-center gap-3"
+                               className="w-full h-14 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-xl font-black text-base hover:shadow-2xl transition-all shadow-xl shadow-green-100 uppercase tracking-widest flex items-center justify-center gap-2"
                            >
-                               <Scan className="h-6 w-6" /> My QR Code
+                               <Scan className="h-5 w-5" /> My QR Code
                            </button>
                        </div>
 

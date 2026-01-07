@@ -97,5 +97,86 @@
     "type": "job",
     "read": false,
     "createdAt": "2026-01-07T11:40:41.789Z"
+  },
+  {
+    "id": "9e35d251-005c-4a6f-941a-df5059eb85ee",
+    "userId": "e67fc1c1-ffc1-444b-8815-5f29d8c24bef",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": false,
+    "createdAt": "2026-01-07T17:01:54.719Z"
+  },
+  {
+    "id": "7154fe3f-6024-4d64-92cf-3a96420093d1",
+    "userId": "e67fc1c1-ffc1-444b-8815-5f29d8c24bef",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": false,
+    "createdAt": "2026-01-07T17:07:49.463Z"
+  },
+  {
+    "id": "150445c6-cda3-4643-ae5d-05f837a28015",
+    "userId": "e67fc1c1-ffc1-444b-8815-5f29d8c24bef",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": false,
+    "createdAt": "2026-01-07T17:08:35.655Z"
+  },
+  {
+    "id": "bfb30d96-d48d-46c0-9114-ac75d10c5e02",
+    "userId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": true,
+    "createdAt": "2026-01-07T17:09:01.878Z"
+  },
+  {
+    "id": "f0270d6c-fad7-4ecc-9f7a-f446e4c8d502",
+    "userId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": true,
+    "createdAt": "2026-01-07T17:09:25.938Z"
+  },
+  {
+    "id": "71ffef8c-a83e-4ef9-a0db-bec268e19ef2",
+    "userId": "e67fc1c1-ffc1-444b-8815-5f29d8c24bef",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": false,
+    "createdAt": "2026-01-07T17:27:09.242Z"
+  },
+  {
+    "id": "9ada9f3d-ec01-45a7-b4cb-373447fcb305",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "title": "Job Accepted",
+    "message": "loki has accepted your job: Harvet",
+    "type": "job",
+    "read": true,
+    "createdAt": "2026-01-07T17:33:05.055Z"
+  },
+  {
+    "id": "be7a12f6-c93a-4717-b158-030d63a46cc3",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "title": "Job Accepted",
+    "message": "loki has accepted your job: Wheat",
+    "type": "job",
+    "read": true,
+    "createdAt": "2026-01-07T17:39:36.353Z"
+  },
+  {
+    "id": "093c8235-f727-488e-b83b-7f64584a6ad7",
+    "userId": "e67fc1c1-ffc1-444b-8815-5f29d8c24bef",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": false,
+    "createdAt": "2026-01-07T18:02:17.119Z"
   }
 ]

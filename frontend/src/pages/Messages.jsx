@@ -271,26 +271,37 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
   return (
     <div className={`bg-gray-50 flex flex-col ${onClose ? 'h-full rounded-2xl overflow-hidden' : 'min-h-screen'}`}>
        {/* Header */}
-       <div className="bg-white shadow-sm p-4 flex items-center justify-between sticky top-0 z-10 border-b border-gray-100">
-            <div className="flex items-center gap-3">
-                <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors">
-                    <ChevronLeft className="h-6 w-6" />
+       <div className="bg-white shadow-xl shadow-gray-100/50 p-4 md:p-6 flex items-center justify-between sticky top-0 z-10 border-b border-gray-100">
+            <div className="flex items-center gap-2 md:gap-4">
+                <button onClick={handleBack} className="h-10 w-10 md:h-12 md:w-12 bg-gray-50 flex items-center justify-center rounded-xl md:rounded-2xl hover:bg-gray-100 transition-all text-gray-900">
+                    <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
                 </button>
                 {activeChat ? (
-                    <div>
-                        <h1 className="text-sm font-black text-gray-900 leading-tight truncate max-w-[120px]">{activeChat.name}</h1>
-                        <p className="text-[10px] text-green-600 font-bold uppercase tracking-wider">Online</p>
+                    <div className="flex items-center gap-2 md:gap-3">
+                        <div className="h-10 w-10 md:h-12 md:w-12 bg-green-100 rounded-xl md:rounded-2xl flex items-center justify-center text-green-700 font-black text-lg md:text-xl border-2 border-white shadow-sm">
+                            {activeChat.name.charAt(0)}
+                        </div>
+                        <div>
+                            <h1 className="text-base md:text-lg font-black text-gray-900 leading-tight tracking-tighter truncate max-w-[120px] md:max-w-[200px] uppercase text-left italic">{activeChat.name}</h1>
+                            <div className="flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                <p className="text-[8px] md:text-[9px] lg:text-[10px] text-green-600 font-black uppercase tracking-widest">Active Now</p>
+                            </div>
+                        </div>
                     </div>
                 ) : (
-                    <h1 className="text-lg font-black text-gray-900 tracking-tight">Messages</h1>
+                    <div>
+                        <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tighter uppercase italic">Intelligence Hub</h1>
+                        <p className="text-[8px] md:text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Your encrypted chats</p>
+                    </div>
                 )}
             </div>
 
-            <div className="flex items-center gap-2 relative">
+            <div className="flex items-center gap-3 relative">
                 {activeChat && isFarmer && job && job.status === 'Completed' && job.paymentStatus === 'Pending' && (
                     <button 
                         onClick={handlePayNow}
-                        className="flex items-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-100 animate-bounce transition-all hover:scale-105 active:scale-95"
+                        className="h-12 px-6 bg-green-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-100 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                     >
                         <CreditCard size={14} /> Pay ₹{job.cost}
                     </button>
@@ -298,22 +309,22 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
                 
                 {activeChat && (
                     <>
-                        <button onClick={handleCall} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-green-600 transition-colors">
-                            <Phone className="h-4 w-4" />
+                        <button onClick={handleCall} className="h-12 w-12 bg-green-50 flex items-center justify-center rounded-2xl text-green-600 hover:bg-green-100 transition-all">
+                            <Phone className="h-5 w-5" />
                         </button>
-                        <button onClick={() => setShowSettings(!showSettings)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-green-600 transition-colors">
-                            < MoreVertical className="h-4 w-4" />
+                        <button onClick={() => setShowSettings(!showSettings)} className="h-12 w-12 bg-gray-50 flex items-center justify-center rounded-2xl text-gray-400 hover:text-gray-900 transition-all">
+                            <MoreVertical className="h-5 w-5" />
                         </button>
                     </>
                 )}
 
                 {/* Settings Dropdown */}
                 {showSettings && (
-                    <div className="absolute top-12 right-0 bg-white rounded-xl shadow-xl border border-gray-100 w-48 overflow-hidden z-20 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <button onClick={() => setShowSettings(false)} className="w-full text-left px-4 py-3 hover:bg-gray-50 text-xs font-bold text-gray-700 transition-colors">
+                    <div className="absolute top-14 right-0 bg-white rounded-2xl shadow-2xl shadow-gray-200 border border-gray-100 w-56 overflow-hidden z-20 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <button onClick={() => setShowSettings(false)} className="w-full text-left px-6 py-4 hover:bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-700 transition-colors">
                             View Profile
                         </button>
-                        <button onClick={handleClearChat} className="w-full text-left px-4 py-3 hover:bg-red-50 text-xs font-bold text-red-600 transition-colors border-t border-gray-50">
+                        <button onClick={handleClearChat} className="w-full text-left px-6 py-4 hover:bg-red-50 text-[10px] font-black uppercase tracking-widest text-red-600 transition-colors border-t border-gray-50">
                             Clear Chat
                         </button>
                     </div>
@@ -333,40 +344,55 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
             {!activeChat ? (
                 // Chat List
                 <div className="divide-y divide-gray-100 bg-white">
-                    {chats.map(chat => (
-                        <div key={chat.id} onClick={() => setActiveChat(chat)} className="p-4 flex items-center gap-4 hover:bg-gray-50 cursor-pointer transition-colors">
-                            <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-black">
-                                {chat.name.charAt(0)}
+                    {chats.length === 0 ? (
+                        <div className="p-16 md:p-24 text-center">
+                            <div className="h-20 w-20 md:h-24 md:w-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-5 md:mb-6">
+                                <Send className="h-8 w-8 md:h-10 md:w-10 text-gray-200" />
                             </div>
-                            <div className="flex-1">
-                                <div className="flex justify-between items-start">
-                                    <h3 className="font-bold text-gray-900 text-sm">{chat.name}</h3>
-                                    <span className="text-[10px] font-bold text-gray-400">{chat.time}</span>
-                                </div>
-                                <p className="text-xs text-gray-500 truncate mt-0.5">{chat.lastMsg}</p>
-                            </div>
-                            {chat.unread > 0 && (
-                                <div className="h-4 w-4 bg-green-600 rounded-full flex items-center justify-center text-[8px] font-black text-white">
-                                    {chat.unread}
-                                </div>
-                            )}
+                            <h3 className="text-xl md:text-2xl font-black text-gray-900 tracking-tighter uppercase italic">No Activity</h3>
+                            <p className="text-gray-400 font-bold max-w-sm mx-auto mt-3 md:mt-4 text-[9px] md:text-[10px] lg:text-sm uppercase tracking-widest leading-relaxed">Start a conversation to discuss job details, timing, and payments.</p>
                         </div>
-                    ))}
+                    ) : (
+                        chats.map(chat => (
+                            <div key={chat.id} onClick={() => setActiveChat(chat)} className="p-6 md:p-8 flex items-center gap-4 md:gap-6 hover:bg-gray-50 cursor-pointer transition-all hover:pl-10 border-l-4 border-transparent hover:border-green-500">
+                                <div className="h-14 w-14 md:h-16 md:w-16 bg-gradient-to-br from-green-50 to-green-100 rounded-xl md:rounded-2xl flex items-center justify-center text-green-700 font-black text-xl md:text-2xl border-2 border-white shadow-md">
+                                    {chat.name.charAt(0)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-start mb-0.5 md:mb-1">
+                                        <h3 className="font-black text-gray-900 text-base md:text-lg tracking-tighter uppercase italic">{chat.name}</h3>
+                                        <span className="text-[8px] md:text-[10px] font-black text-gray-400">{chat.time}</span>
+                                    </div>
+                                    <p className="text-[10px] md:text-sm font-bold text-gray-500 truncate">{chat.lastMsg}</p>
+                                </div>
+                                {chat.unread > 0 && (
+                                    <div className="h-5 w-5 md:h-6 md:w-6 bg-green-600 rounded-full flex items-center justify-center text-[8px] md:text-[10px] font-black text-white shadow-lg shadow-green-100">
+                                        {chat.unread}
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
                 </div>
             ) : (
-                // Active Msg Window
-                <div className="p-4 space-y-4">
-                    <div className="flex justify-center">
-                        <span className="bg-white/80 backdrop-blur-sm shadow-sm text-[10px] font-black text-gray-400 px-3 py-1 rounded-lg uppercase tracking-widest">History</span>
+                <div className="p-4 md:p-8 space-y-4 md:space-y-6">
+                    <div className="flex justify-center mb-6 md:mb-8">
+                        <span className="bg-white/90 backdrop-blur-md shadow-xl shadow-gray-200/50 text-[8px] md:text-[10px] font-black text-gray-400 px-4 md:px-6 py-1.5 md:py-2 rounded-full uppercase tracking-widest border border-white">End-to-End Encrypted</span>
                     </div>
 
                     {messages.map((msg, i) => (
                         <div key={msg.id || i} className={`flex ${msg.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`${msg.senderId === currentUser.id ? 'bg-green-600 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none border border-gray-100'} p-3 rounded-2xl max-w-[85%] shadow-sm`}>
-                                <p className="text-sm font-medium">{msg.content}</p>
-                                <span className={`text-[9px] font-black block mt-1 text-right ${msg.senderId === currentUser.id ? 'text-green-200' : 'text-gray-300'}`}>
+                            <div className={`
+                                relative px-6 md:px-8 py-4 md:py-5 max-w-[85%] md:max-w-[80%] shadow-xl transition-all duration-300
+                                ${msg.senderId === currentUser.id 
+                                    ? 'bg-green-600 text-white rounded-2xl md:rounded-[2.5rem] rounded-tr-none shadow-green-100' 
+                                    : 'bg-white text-gray-800 rounded-2xl md:rounded-[2.5rem] rounded-tl-none border border-gray-100 shadow-gray-100'}
+                            `}>
+                                <p className="text-[12px] md:text-sm font-black leading-relaxed">{msg.content}</p>
+                                <div className={`text-[8px] md:text-[9px] font-black mt-2 md:mt-3 flex items-center gap-1.5 md:gap-2 ${msg.senderId === currentUser.id ? 'text-green-200 justify-end' : 'text-gray-400 justify-start'}`}>
                                     {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                                </span>
+                                    {msg.senderId === currentUser.id && <CheckCircle2 size={10} md:size={12} className="fill-current" />}
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -377,17 +403,17 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
 
        {/* Input Area (only if chat active) */}
        {activeChat && (
-           <form onSubmit={handleSendMessage} className="bg-white p-4 border-t border-gray-100 sticky bottom-0">
-               <div className="flex items-center gap-2 bg-gray-50 rounded-2xl px-2 py-1 shadow-inner border border-gray-100">
+           <form onSubmit={handleSendMessage} className="bg-white p-4 md:p-8 border-t border-gray-100 sticky bottom-0">
+               <div className="flex items-center gap-3 md:gap-4 bg-gray-50 rounded-2xl md:rounded-[2.5rem] px-4 md:px-6 py-1 md:py-2 border-2 border-gray-100 focus-within:border-green-500 transition-all shadow-xl shadow-gray-100/50">
                    <input 
                         type="text" 
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type a message..." 
-                        className="flex-1 bg-transparent border-none px-3 py-3 focus:outline-none text-sm font-medium text-gray-700"
+                        placeholder="Type here..." 
+                        className="flex-1 bg-transparent border-none px-2 py-4 md:py-5 focus:outline-none text-xs md:text-sm font-black text-gray-700"
                    />
-                   <button type="submit" className="h-10 w-10 bg-green-600 rounded-xl text-white flex items-center justify-center hover:bg-green-700 shadow-lg shadow-green-100 transition-all hover:scale-105 active:scale-95">
-                       <Send className="h-5 w-5" />
+                   <button type="submit" className="h-10 w-10 md:h-14 md:w-14 bg-green-600 rounded-lg md:rounded-3xl text-white flex items-center justify-center hover:bg-green-700 shadow-xl shadow-green-100 transition-all hover:scale-110 active:scale-90 group flex-shrink-0">
+                       <Send className="h-5 w-5 md:h-6 md:w-6 group-hover:rotate-12 transition-transform" />
                    </button>
                </div>
            </form>

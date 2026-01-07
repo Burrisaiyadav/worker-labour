@@ -63,8 +63,15 @@ router.put('/read-all', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
     try {
         const { userId, title, message, type } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ msg: 'Target userId is required' });
+        }
+
+        console.log(`Creating notification from ${req.user.id} to ${userId}: ${title}`);
+
         const newNotif = new Notification({
-            userId: userId || req.user.id, // target specified or fallback to self
+            userId: userId,
             title,
             message,
             type
@@ -74,7 +81,8 @@ router.post('/', auth, async (req, res) => {
         // Socket Broadcast
         const io = req.app.get('io');
         if (io) {
-            io.to(newNotif.userId).emit('new-notification', newNotif);
+            console.log(`Emitting notification to room ${userId}`);
+            io.to(userId).emit('new-notification', newNotif);
         }
 
         res.json(newNotif);

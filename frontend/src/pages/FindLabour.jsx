@@ -78,19 +78,22 @@ const FindLabour = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans">
       {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-20 p-4 flex items-center justify-between">
+      <div className="bg-white shadow-xl shadow-gray-100/50 sticky top-0 z-20 px-6 py-6 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/dashboard')} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <ChevronLeft className="h-6 w-6 text-gray-600" />
+            <button onClick={() => navigate('/dashboard')} className="h-12 w-12 bg-gray-50 flex items-center justify-center rounded-2xl hover:bg-gray-100 transition-all">
+                <ChevronLeft className="h-6 w-6 text-gray-900" />
             </button>
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight">Find Labour</h1>
+            <div>
+                <h1 className="text-2xl font-black text-gray-900 tracking-tighter uppercase">Find Workers</h1>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Nearby You</p>
+            </div>
         </div>
         <button 
             onClick={() => setShowFilters(!showFilters)}
-            className={`p-2 rounded-xl border transition-all flex items-center gap-2 ${showFilters ? 'bg-green-600 border-green-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-green-500'}`}
+            className={`h-12 px-6 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all flex items-center gap-2 ${showFilters ? 'bg-green-600 text-white shadow-lg shadow-green-100' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
         >
-            <Filter className="h-5 w-5" />
-            <span className="text-sm font-bold">Filters</span>
+            <Filter className="h-4 w-4" />
+            Filters
         </button>
       </div>
 
@@ -152,57 +155,64 @@ const FindLabour = () => {
             <input 
                 type="text" 
                 placeholder="Search by name, skill or location..." 
-                className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-100 focus:border-green-500 focus:outline-none shadow-sm transition-all group-hover:border-gray-200"
+                className="w-full pl-14 pr-6 py-6 rounded-[2rem] border-2 border-gray-100 focus:border-green-500 focus:outline-none shadow-xl shadow-gray-100 transition-all font-bold text-gray-900 group-hover:border-gray-200"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <Search className="absolute left-4 top-4.5 h-6 w-6 text-gray-300 group-focus-within:text-green-500 transition-colors" />
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-300 group-focus-within:text-green-500 transition-colors" />
         </div>
 
         {/* Results */}
-        <div className="space-y-4">
+        <div className="space-y-6">
             {filteredLabourers.map(item => (
-                <div key={item.id} className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300">
-                    <div className="flex items-center gap-6 mb-6">
+                <div key={item.id} className="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-100 hover:shadow-2xl hover:shadow-green-50 transition-all duration-500 group relative overflow-hidden">
+                    <div className="flex flex-col sm:flex-row items-center gap-8 mb-8 relative z-10">
                         <div className="relative">
-                            <div className="h-24 w-24 bg-gradient-to-br from-green-50 to-green-100 rounded-3xl flex items-center justify-center text-green-700 font-black text-4xl border-2 border-white shadow-md overflow-hidden">
+                            <div className="h-32 w-32 bg-gray-50 rounded-[2rem] flex items-center justify-center text-green-700 font-black text-5xl border-4 border-white shadow-xl overflow-hidden group-hover:scale-105 transition-transform duration-500">
                                 {item.profileImage ? <img src={item.profileImage} alt={item.name} className="w-full h-full object-cover" /> : (item.name ? item.name.charAt(0) : 'L')}
                             </div>
                             {item.accountType === 'group' && (
-                                <div className="absolute -top-2 -right-2 bg-blue-600 text-white p-2 rounded-xl shadow-lg border-2 border-white">
-                                    <Users className="h-5 w-5" />
+                                <div className="absolute -top-3 -right-3 bg-blue-600 text-white h-12 w-12 rounded-2xl shadow-xl border-4 border-white flex items-center justify-center">
+                                    <Users className="h-6 w-6" />
                                 </div>
                             )}
                         </div>
-                        <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                                <h3 className="font-black text-3xl text-gray-900 tracking-tighter">{item.name}</h3>
+                        <div className="flex-1 text-center sm:text-left">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                                <h3 className="font-black text-4xl text-gray-900 tracking-tighter">{item.name}</h3>
                                 {item.accountType === 'group' && (
-                                    <span className="bg-blue-600 text-white text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-widest">Group</span>
+                                    <span className="bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-widest w-fit mx-auto sm:mx-0">Group</span>
                                 )}
                             </div>
-                            <div className="flex flex-col gap-1 mt-1">
-                                <span className="flex items-center gap-1.5 text-sm font-bold text-gray-500">
-                                    <MapPin className="h-4 w-4 text-green-600" /> {item.location || 'Punjab'}
-                                </span>
-                                <div className="flex items-center gap-1.5 text-lg font-black text-green-700 mt-1">
-                                    <DollarSign className="h-5 w-5" /> ₹{item.rate || '450'}<span className="text-[10px] text-gray-400 font-black uppercase tracking-widest ml-1">Daily</span>
+                            <div className="flex flex-wrap justify-center sm:justify-start gap-3">
+                                <div className="bg-gray-50 px-4 py-2 rounded-xl flex items-center gap-2 border border-gray-100">
+                                    <MapPin className="h-4 w-4 text-green-600" />
+                                    <span className="text-[10px] font-black text-gray-700 uppercase tracking-widest">{item.location || 'Punjab'}</span>
+                                </div>
+                                <div className="bg-green-50/50 px-4 py-2 rounded-xl flex items-center gap-2 border border-green-50/50">
+                                    <DollarSign className="h-4 w-4 text-green-600" />
+                                    <span className="text-sm font-black text-green-800 tracking-tighter">₹{item.rate || '450'}<span className="text-[10px] text-gray-400 font-black uppercase tracking-widest ml-1">/day</span></span>
                                 </div>
                             </div>
                         </div>
-                        <div className="text-right">
-                             <div className="flex items-center gap-1 text-yellow-500 font-black text-xl mb-1">
-                                <Star className="h-5 w-5 fill-current" /> {item.rating || '4.8'}
+                        <div className="flex flex-col items-center sm:items-end gap-1">
+                             <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-2xl border border-yellow-100">
+                                <Star className="h-5 w-5 text-yellow-500 fill-current" /> 
+                                <span className="font-black text-2xl text-yellow-600 tracking-tighter">{item.rating || '4.8'}</span>
                             </div>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Rating</p>
                         </div>
                     </div>
                     
                     <button 
                         onClick={() => handleHire(item)}
-                        className="w-full h-16 bg-green-600 text-white rounded-3xl font-black text-xl hover:bg-green-700 shadow-xl shadow-green-100 uppercase tracking-tighter transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3"
+                        className="w-full h-18 bg-green-600 text-white rounded-[2rem] font-black text-xl hover:bg-green-700 shadow-xl shadow-green-100 uppercase tracking-widest transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-4 py-6"
                     >
-                        Hire Now
+                        Hire Now <ChevronLeft className="h-6 w-6 rotate-180" />
                     </button>
+                    
+                    {/* Decorative Blob */}
+                    <div className="absolute -left-12 -bottom-12 h-40 w-40 bg-green-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700 -z-0"></div>
                 </div>
             ))}
             {filteredLabourers.length === 0 && (

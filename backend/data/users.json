@@ -15,7 +15,7 @@
     "accountType": "individual",
     "groupMembersCount": 0,
     "createdAt": "2025-12-18T11:24:40.043Z",
-    "updatedAt": "2026-01-07T11:29:56.959Z"
+    "updatedAt": "2026-01-07T18:47:22.404Z"
   },
   {
     "id": "7dc449ee-67d4-4e04-9e75-f6d5ea2f502f",
@@ -100,7 +100,7 @@
     "role": "labour",
     "mobile": "7448559660",
     "location": "Punjab",
-    "gender": "",
+    "gender": "Male",
     "skills": [],
     "crops": [],
     "farmSize": "",
@@ -109,10 +109,8 @@
     "rate": "",
     "accountType": "individual",
     "groupMembersCount": 0,
-    "loginOtp": "8991",
-    "loginOtpExpire": 1767794190854,
     "createdAt": "2025-12-20T18:09:40.244Z",
-    "updatedAt": "2026-01-07T13:46:30.854Z"
+    "updatedAt": "2026-01-07T18:43:17.241Z"
   },
   {
     "id": "32dd6796-df12-4a17-9d29-80e2dccd199d",

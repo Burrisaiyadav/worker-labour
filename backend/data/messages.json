@@ -1,1 +1,34 @@
-[]
+[
+  {
+    "id": "53a62349-7ed2-47d0-ba39-451cf4853cf7",
+    "senderId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "receiverId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "content": "1Ak+cjlO1HRnoLVMw95WEn5vbaRBLK7FFXgEzuqh",
+    "timestamp": "2026-01-07T17:31:23.857Z",
+    "read": false
+  },
+  {
+    "id": "07194a84-a0b5-4fef-85ba-eb2a37aa440e",
+    "senderId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "receiverId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "content": "85MybArmEMQwvXT3QVjPasgJJca81Z/c9L+Pr+hzvA==",
+    "timestamp": "2026-01-07T17:41:03.527Z",
+    "read": false
+  },
+  {
+    "id": "69d5c669-7be0-4352-b994-83682c00c948",
+    "senderId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "receiverId": "e67fc1c1-ffc1-444b-8815-5f29d8c24bef",
+    "content": "TVTCU9Hn7ILdCojgUChKxvvhd8dhtVSI51684atFBg==",
+    "timestamp": "2026-01-07T18:02:22.091Z",
+    "read": false
+  },
+  {
+    "id": "5ad15611-4763-43b1-831f-f9da3abd7ede",
+    "senderId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "receiverId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "content": "i+rM9JL9OzfVmKqr56XztOAw+YOiPTkJQfCcWFLTXQ==",
+    "timestamp": "2026-01-07T18:47:06.913Z",
+    "read": false
+  }
+]

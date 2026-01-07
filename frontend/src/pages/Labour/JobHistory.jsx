@@ -57,51 +57,61 @@ const JobHistory = () => {
     const jobTypes = ['All', ...new Set(history.map(job => job.type || job.title))];
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans">
+        <div className="min-h-screen bg-gray-50 font-sans pb-20">
             <LabourNavbar />
 
-            <main className="max-w-7xl mx-auto px-6 py-8">
-                <div className="flex items-center gap-4 mb-8">
-                     <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-200 rounded-full transition-colors md:hidden">
-                        <ChevronLeft />
-                    </button>
+            <main className="max-w-7xl mx-auto px-6 py-12">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Job History</h1>
-                        <p className="text-gray-500 mt-1">Review your past work and earnings.</p>
+                        <h1 className="text-4xl font-black text-gray-900 tracking-tighter uppercase mb-2">Job History</h1>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Review your past work and earnings.</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <button className="h-12 px-6 bg-white border border-gray-100 rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-all shadow-sm">
+                            <Download size={16} /> Export CSV
+                        </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
                      {/* Filter Sidebar (Desktop) */}
-                     <div className="hidden lg:block lg:col-span-1">
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 sticky top-24">
-                            <h3 className="font-bold text-gray-900 mb-4">Filters</h3>
-                            <div className="space-y-4">
+                     <div className="lg:col-span-1">
+                        <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-gray-200/50 border border-white sticky top-28">
+                            <h3 className="font-black text-gray-900 uppercase tracking-tighter text-xl mb-6">Filters</h3>
+                            <div className="space-y-8">
                                 <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wide block mb-2">Time Range</label>
-                                    <select 
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500"
-                                        value={filters.timeRange}
-                                        onChange={(e) => setFilters({...filters, timeRange: e.target.value})}
-                                    >
-                                        <option>All Time</option>
-                                        <option>This Month</option>
-                                        <option>Last Month</option>
-                                    </select>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Time Range</label>
+                                    <div className="space-y-2">
+                                        {['All Time', 'This Month', 'Last Month'].map(range => (
+                                            <button 
+                                                key={range}
+                                                onClick={() => setFilters({...filters, timeRange: range})}
+                                                className={`w-full text-left px-4 py-3 rounded-xl font-bold text-xs transition-all ${
+                                                    filters.timeRange === range 
+                                                    ? 'bg-green-600 text-white shadow-lg shadow-green-100' 
+                                                    : 'text-gray-500 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {range}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                                 <div>
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wide block mb-2">Job Type</label>
-                                    <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-4">Job Type</label>
+                                    <div className="grid grid-cols-1 gap-2">
                                         {jobTypes.map(type => (
-                                            <label key={type} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                                                <input 
-                                                    type="radio" 
-                                                    name="jobType"
-                                                    checked={filters.jobType === type}
-                                                    onChange={() => setFilters({...filters, jobType: type})}
-                                                    className="rounded-full text-green-600 focus:ring-green-500" 
-                                                /> {type}
-                                            </label>
+                                            <button 
+                                                key={type}
+                                                onClick={() => setFilters({...filters, jobType: type})}
+                                                className={`w-full text-left px-4 py-3 rounded-xl font-bold text-xs transition-all ${
+                                                    filters.jobType === type 
+                                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' 
+                                                    : 'text-gray-500 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {type}
+                                            </button>
                                         ))}
                                     </div>
                                 </div>
@@ -110,62 +120,87 @@ const JobHistory = () => {
                      </div>
                     
                     {/* Main Content */}
-                    <div className="lg:col-span-3 space-y-6">
+                    <div className="lg:col-span-3 space-y-10">
                          {/* Stats Row */}
-                        <div className="grid grid-cols-3 gap-6">
-                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Total Earnings</p>
-                                <p className="font-bold text-gray-900 text-2xl text-green-600">₹{stats.total}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-green-50 transition-all group">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 group-hover:text-green-600 transition-colors">Total Earnings</p>
+                                <p className="text-3xl font-black text-green-600 tracking-tighter">₹{stats.total}</p>
                             </div>
-                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Completed</p>
-                                <p className="font-bold text-gray-900 text-2xl">{stats.completed}</p>
+                            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-gray-50 transition-all group">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 group-hover:text-gray-900 transition-colors">Completed</p>
+                                <p className="text-3xl font-black text-gray-900 tracking-tighter">{stats.completed}</p>
                             </div>
-                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Active</p>
-                                <p className="font-bold text-gray-900 text-2xl text-blue-600">{stats.inProgress}</p>
+                            <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-blue-50 transition-all group">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 group-hover:text-blue-600 transition-colors">Active Jobs</p>
+                                <p className="text-3xl font-black text-blue-600 tracking-tighter">{stats.inProgress}</p>
                             </div>
                         </div>
 
                         {/* List */}
-                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="bg-white rounded-[3rem] border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
                              {loading ? (
-                                 <div className="p-12 text-center text-gray-500">Loading your history...</div>
+                                 <div className="p-20 text-center">
+                                     <div className="h-12 w-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Loading History...</p>
+                                 </div>
                              ) : filteredHistory.length === 0 ? (
-                                 <div className="p-12 text-center text-gray-500 italic">No jobs match your filters.</div>
+                                 <div className="p-20 text-center">
+                                     <div className="h-20 w-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                         <Briefcase className="h-10 w-10 text-gray-200" />
+                                     </div>
+                                     <h3 className="text-xl font-black text-gray-900 tracking-tighter uppercase mb-2">No Records Found</h3>
+                                     <p className="text-gray-400 text-sm font-bold">Try adjusting your filters to see more results.</p>
+                                 </div>
                              ) : (
                                  <div className="overflow-x-auto">
                                      <table className="w-full text-left border-collapse">
                                         <thead>
-                                            <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wide">
-                                                <th className="px-6 py-4">Job Details</th>
-                                                <th className="px-6 py-4">Farmer</th>
-                                                <th className="px-6 py-4">Date & Time</th>
-                                                <th className="px-6 py-4 text-right">Earnings</th>
+                                            <tr className="bg-gray-50/50 border-b border-gray-100">
+                                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Job Details</th>
+                                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Farmer</th>
+                                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Date & Duration</th>
+                                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Earnings</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-50">
                                             {filteredHistory.map(job => (
-                                                <tr key={job.id} className="hover:bg-gray-50 transition-colors group">
-                                                    <td className="px-6 py-4">
-                                                        <div className="font-bold text-gray-900">{job.type || job.title}</div>
-                                                        <div className={`text-[10px] inline-block px-2 py-0.5 rounded mt-1 font-bold uppercase tracking-wider ${
-                                                            job.status === 'Completed' ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'
+                                                <tr key={job.id} className="hover:bg-gray-50/50 transition-all group cursor-default">
+                                                    <td className="px-8 py-8">
+                                                        <div className="font-black text-gray-900 text-lg tracking-tighter uppercase group-hover:text-green-600 transition-colors">{job.type || job.title}</div>
+                                                        <div className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                                                            job.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                                                         }`}>
+                                                            <Activity size={10} />
                                                             {job.status}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 text-sm text-gray-600 font-medium">{job.farmerName || 'Farmer'}</td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex flex-col text-sm text-gray-500">
-                                                            <span className="flex items-center gap-1.5 font-medium"><Calendar size={14} className="text-gray-400"/> {new Date(job.date || job.createdAt).toLocaleDateString()}</span>
-                                                            <span className="flex items-center gap-1.5 mt-1 font-medium"><Clock size={14} className="text-gray-400"/> {job.workers || 1} Workers</span>
+                                                    <td className="px-8 py-8">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="h-10 w-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 font-black text-lg">
+                                                                {job.farmerName?.charAt(0) || 'F'}
+                                                            </div>
+                                                            <div className="font-black text-gray-900 tracking-tight uppercase text-sm">{job.farmerName || 'Farmer'}</div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="font-bold text-gray-900">₹{job.cost}</div>
+                                                    <td className="px-8 py-8">
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                                                                <Calendar size={14} className="text-gray-300" /> 
+                                                                {new Date(job.date || job.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                                                <Clock size={12} className="text-gray-300" /> 
+                                                                {job.workers || 1} Workers
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-8 py-8 text-right">
+                                                        <div className="text-xl font-black text-gray-900 tracking-tighter">₹{job.cost}</div>
                                                         {job.status === 'Completed' && (
-                                                            <button className="text-[10px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-tight mt-1">View Details</button>
+                                                            <button className="mt-2 text-[9px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest flex items-center gap-1 ml-auto transition-colors">
+                                                                Receipt <Download size={10} />
+                                                            </button>
                                                         )}
                                                     </td>
                                                 </tr>

@@ -72,13 +72,20 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6 py-12 font-sans overflow-hidden relative">
+      {/* Decorative Blobs */}
+      <div className="absolute -top-24 -left-24 w-96 h-96 bg-green-100 rounded-full blur-3xl opacity-50"></div>
+      <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-blue-100 rounded-full blur-3xl opacity-50"></div>
+
+      <div className="max-w-md w-full space-y-6 md:space-y-10 bg-white p-8 md:p-12 rounded-3xl md:rounded-[3.5rem] shadow-2xl shadow-gray-200/50 relative z-10 border border-white">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Welcome Back
+            <div className="h-16 w-16 md:h-20 md:w-20 bg-green-600 rounded-2xl md:rounded-[2rem] flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-2xl shadow-green-200">
+                <Lock className="h-10 w-10 text-white" />
+            </div>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 tracking-tighter uppercase mb-3 md:mb-4 italic">
+            Welcome back
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="text-[8px] md:text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-relaxed">
             {step === 1 ? 'Enter your mobile number to sign in' : 'Enter the OTP sent to your mobile'}
           </p>
         </div>
@@ -97,18 +104,18 @@ const Login = () => {
         )}
 
         {step === 1 ? (
-             <form className="mt-8 space-y-6" onSubmit={onSendOtp}>
+             <form className="space-y-6 md:space-y-8" onSubmit={onSendOtp}>
                 <div className="space-y-4">
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Phone className="h-6 w-6 text-gray-400" />
+                    <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-5 md:pl-6 flex items-center pointer-events-none">
+                            <Phone className="h-5 w-5 md:h-6 md:w-6 text-gray-300 group-focus-within:text-green-600 transition-colors" />
                         </div>
                         <input
                             id="mobile"
                             name="mobile"
                             type="tel"
                             required
-                            className="appearance-none rounded-2xl relative block w-full pl-12 px-4 py-5 border-2 border-gray-100 placeholder-gray-400 text-gray-900 font-bold text-lg focus:outline-none focus:ring-green-500 focus:border-green-500 transition-all shadow-sm"
+                            className="appearance-none rounded-2xl md:rounded-[2rem] relative block w-full pl-14 md:pl-16 px-5 md:px-6 py-4 md:py-6 border-2 border-gray-100 placeholder-gray-300 text-gray-900 font-bold text-lg md:text-xl focus:outline-none focus:border-green-500 transition-all shadow-xl shadow-gray-100/50"
                             placeholder="Mobile Number"
                             value={mobile}
                             onChange={onChange}
@@ -116,63 +123,56 @@ const Login = () => {
                     </div>
                 </div>
 
-                <div>
-                    <button
-                        type="submit"
-                        className="group relative w-full h-16 flex justify-center items-center px-4 border border-transparent text-xl font-black uppercase tracking-widest rounded-[2rem] text-white bg-green-600 hover:bg-green-700 shadow-xl shadow-green-100 transition-all active:scale-95"
-                    >
-                        Send OTP
-                    </button>
-                </div>
+                <button
+                    type="submit"
+                    className="w-full h-16 md:h-20 flex justify-center items-center px-6 md:px-8 border border-transparent text-lg md:text-xl font-black uppercase tracking-widest rounded-2xl md:rounded-[2rem] text-white bg-green-600 hover:bg-green-700 shadow-2xl shadow-green-100 transition-all active:scale-95 py-5 md:py-6"
+                >
+                    Send OTP <ArrowRight className="ml-3 md:ml-4 h-5 w-5 md:h-6 md:w-6" />
+                </button>
             </form>
         ) : (
-            <form className="mt-8 space-y-6" onSubmit={onVerifyOtp}>
-                <div className="rounded-md shadow-sm -space-y-px">
-                    <div className="mb-4">
-                    <label htmlFor="otp" className="sr-only">
-                        OTP
-                    </label>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-gray-400" />
+            <form className="space-y-6 md:space-y-8" onSubmit={onVerifyOtp}>
+                <div className="space-y-4">
+                    <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-5 md:pl-6 flex items-center pointer-events-none">
+                            <Lock className="h-5 w-5 md:h-6 md:w-6 text-gray-300 group-focus-within:text-green-600 transition-colors" />
                         </div>
                         <input
-                        id="otp"
-                        name="otp"
-                        type="text"
-                        required
-                        className="appearance-none rounded-lg relative block w-full pl-10 px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                        placeholder="Enter OTP"
-                        value={otp}
-                        onChange={onChange}
+                            id="otp"
+                            name="otp"
+                            type="text"
+                            required
+                            className="appearance-none rounded-2xl md:rounded-[2rem] relative block w-full pl-14 md:pl-16 px-5 md:px-6 py-4 md:py-6 border-2 border-gray-100 placeholder-gray-300 text-gray-900 font-bold text-lg md:text-xl focus:outline-none focus:border-green-500 transition-all shadow-xl shadow-gray-100/50"
+                            placeholder="6-digit OTP"
+                            value={otp}
+                            onChange={onChange}
                         />
-                    </div>
                     </div>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex gap-3 md:gap-4">
                      <button
                         type="button"
                         onClick={() => setStep(1)}
-                        className="group relative flex-1 flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+                        className="h-14 w-14 md:h-16 md:w-16 flex items-center justify-center bg-gray-50 text-gray-500 rounded-xl md:rounded-2xl hover:bg-gray-100 transition-all flex-shrink-0"
                     >
-                    Back
+                        <ArrowLeft className="h-5 w-5 md:h-6 md:w-6" />
                     </button>
                     <button
                         type="submit"
-                        className="group relative flex-1 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+                        className="flex-1 h-14 md:h-16 flex justify-center items-center px-6 md:px-8 text-base md:text-lg font-black uppercase tracking-widest rounded-xl md:rounded-2xl text-white bg-green-600 hover:bg-green-700 shadow-xl shadow-green-100 transition-all active:scale-95"
                     >
-                    Login
+                        Verify & Login
                     </button>
                 </div>
             </form>
         )}
         
-        <div className="text-center mt-4">
-          <p className="text-sm text-gray-600">
+        <div className="text-center mt-10 pt-6 border-t border-gray-50">
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
             Don't have an account?{' '}
-            <Link to="/register" className="font-medium text-green-600 hover:text-green-500">
-              Sign up
+            <Link to="/register" className="ml-1 text-green-600 hover:text-green-700 transition-colors">
+              Create One
             </Link>
           </p>
         </div>
