@@ -5,32 +5,30 @@ const Job = require('../models/JobJSON');
 const User = require('../models/UserJSON');
 const Attendance = require('../models/AttendanceJSON');
 const Notification = require('../models/NotificationJSON');
+const LabourGroup = require('../models/LabourGroupJSON');
 
 // @route   POST /api/jobs
 // @desc    Create a new job
 // @access  Private
 router.post('/', auth, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id); // Fetch user to get their name
+        const user = await User.findById(req.user.id);
         const newJob = new Job({
             userId: req.user.id,
-            farmerName: user.name, // Added farmerName
+            farmerName: user.name,
             title: req.body.title,
             date: req.body.date,
             workers: req.body.workers,
             cost: req.body.cost,
             description: req.body.description,
-            location: req.body.location || 'Punjab', // Fallback or dynamic
-            image: req.body.image, // Base64 image
+            location: req.body.location || 'Punjab',
+            image: req.body.image,
             status: 'Active'
         });
 
         const job = await newJob.save();
-
-        // Emit socket event to all connected clients (specifically for labourers)
         const io = req.app.get('io');
         io.emit('new-job', job);
-
         res.json(job);
     } catch (err) {
         console.error(err.message);
@@ -56,10 +54,7 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/available', auth, async (req, res) => {
     try {
-        // Get all jobs
         const jobs = await Job.find({});
-        // Filter: Status is Active AND Not assigned yet
-        // In a real app we might filter by location relative to user, but for now just show all Available
         const availableJobs = jobs.filter(j => j.status === 'Active' && !j.assignedTo);
         res.json(availableJobs);
     } catch (err) {
@@ -69,12 +64,21 @@ router.get('/available', auth, async (req, res) => {
 });
 
 // @route   GET /api/jobs/labour/active
-// @desc    Get jobs assigned to logged in labour
+// @desc    Get jobs assigned to logged in labour or their groups
 // @access  Private
 router.get('/labour/active', auth, async (req, res) => {
     try {
+        const allGroups = await LabourGroup.find();
+        const myGroups = allGroups.filter(g =>
+            String(g.adminId) === String(req.user.id) ||
+            (Array.isArray(g.members) && g.members.some(mId => String(mId) === String(req.user.id)))
+        ).map(g => String(g.id));
+
         const jobs = await Job.find({});
-        const myActiveJobs = jobs.filter(j => j.assignedTo === req.user.id && j.status !== 'Completed');
+        const myActiveJobs = jobs.filter(j =>
+            (String(j.assignedTo) === String(req.user.id) || myGroups.some(gId => String(gId) === String(j.assignedTo))) &&
+            j.status !== 'Completed'
+        );
         res.json(myActiveJobs);
     } catch (err) {
         console.error(err.message);
@@ -83,12 +87,21 @@ router.get('/labour/active', auth, async (req, res) => {
 });
 
 // @route   GET /api/jobs/labour/history
-// @desc    Get all job history for logged in labour
+// @desc    Get all job history for logged in labour or their groups
 // @access  Private
 router.get('/labour/history', auth, async (req, res) => {
     try {
+        const allGroups = await LabourGroup.find();
+        const myGroups = allGroups.filter(g =>
+            String(g.adminId) === String(req.user.id) ||
+            (Array.isArray(g.members) && g.members.some(mId => String(mId) === String(req.user.id)))
+        ).map(g => String(g.id));
+
         const jobs = await Job.find({});
-        const myJobs = jobs.filter(j => j.assignedTo === req.user.id);
+        const myJobs = jobs.filter(j =>
+            String(j.assignedTo) === String(req.user.id) ||
+            myGroups.some(gId => String(gId) === String(j.assignedTo))
+        );
         res.json(myJobs);
     } catch (err) {
         console.error(err.message);
@@ -97,27 +110,27 @@ router.get('/labour/history', auth, async (req, res) => {
 });
 
 // @route   PUT /api/jobs/:id/status
-// @desc    Update job status (Accept, Complete, etc.)
+// @desc    Update job status
 // @access  Private
 router.put('/:id/status', auth, async (req, res) => {
     const { status } = req.body;
     try {
         const job = await Job.findById(req.params.id);
-        console.log('Update Job Status Request:', { id: req.params.id, status, user: req.user.id });
-
         if (!job) return res.status(404).json({ msg: 'Job not found' });
 
-        // Logic check
+        const allGroups = await LabourGroup.find();
+        const myGroups = allGroups.filter(g =>
+            String(g.adminId) === String(req.user.id) ||
+            (Array.isArray(g.members) && g.members.some(mId => String(mId) === String(req.user.id)))
+        ).map(g => String(g.id));
+
         if (status === 'In Progress' && job.status === 'Active') {
-            // Accepting job
             job.assignedTo = req.user.id;
             job.status = 'In Progress';
-        } else if (status === 'Completed' && job.assignedTo === req.user.id) {
+        } else if (status === 'Completed' && (String(job.assignedTo) === String(req.user.id) || myGroups.some(gId => String(gId) === String(job.assignedTo)))) {
             job.status = 'Completed';
         } else {
-            // Allow other updates? Or return error? 
-            // For simplicity allow status update if user owns it OR is assigned it
-            if (job.userId === req.user.id || job.assignedTo === req.user.id) {
+            if (String(job.userId) === String(req.user.id) || String(job.assignedTo) === String(req.user.id) || myGroups.some(gId => String(gId) === String(job.assignedTo))) {
                 job.status = status;
             } else {
                 return res.status(401).json({ msg: 'Not authorized' });
@@ -125,12 +138,9 @@ router.put('/:id/status', auth, async (req, res) => {
         }
 
         await job.save();
-
-        // Emit socket event to the farmer (job owner)
         const io = req.app.get('io');
         io.to(job.userId).emit('job-status-updated', job);
 
-        // Create notification for farmer if accepted
         if (status === 'In Progress') {
             const labourer = await User.findById(req.user.id);
             const newNotif = new Notification({
@@ -144,7 +154,6 @@ router.put('/:id/status', auth, async (req, res) => {
         }
 
         res.json(job);
-
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -152,17 +161,14 @@ router.put('/:id/status', auth, async (req, res) => {
 });
 
 // @route   POST /api/jobs/attendance
-// @desc    Mark attendance via QR scan
 // @access  Private (Farmer)
 router.post('/attendance', auth, async (req, res) => {
     const { labourId } = req.body;
     try {
         const farmer = await User.findById(req.user.id);
         const labourer = await User.findById(labourId);
-
         if (!labourer) return res.status(404).json({ msg: 'Labourer not found' });
 
-        // Record attendance permanently
         const newAttendance = new Attendance({
             farmerId: farmer.id,
             farmerName: farmer.name,
@@ -171,11 +177,10 @@ router.post('/attendance', auth, async (req, res) => {
         });
         await newAttendance.save();
 
-        // Rapido Flow: Find the active job for this labourer and mark it as verified
         const allJobs = await Job.find({});
         const activeJob = allJobs.find(j =>
-            j.assignedTo === labourId &&
-            j.userId === farmer.id &&
+            String(j.assignedTo) === String(labourId) &&
+            String(j.userId) === String(farmer.id) &&
             j.status === 'In Progress'
         );
 
@@ -183,33 +188,23 @@ router.post('/attendance', auth, async (req, res) => {
             activeJob.verified = true;
             activeJob.arrivedAt = new Date();
             await activeJob.save();
-            console.log(`Job ${activeJob.id} verified via QR scan`);
         }
 
-        console.log(`Attendance saved: ${labourer.name} by ${farmer.name}`);
-
-        // Create notification for labourer
         const io = req.app.get('io');
         const newNotif = new Notification({
             userId: labourId,
             title: 'Attendance Marked',
-            message: `${farmer.name} marked your attendance. You can now start the work!`,
+            message: `${farmer.name} marked your attendance.`,
             type: 'job'
         });
         await newNotif.save();
         io.to(labourId).emit('new-notification', newNotif);
 
-        // Also notify via specialized event for UI update
         if (activeJob) {
             io.to(labourId).emit('job-verified', activeJob);
         }
 
-        res.json({
-            success: true,
-            msg: `Attendance marked for ${labourer.name}`,
-            labourerName: labourer.name,
-            jobVerified: !!activeJob
-        });
+        res.json({ success: true, msg: `Attendance marked for ${labourer.name}` });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -217,8 +212,6 @@ router.post('/attendance', auth, async (req, res) => {
 });
 
 // @route   GET /api/jobs/:id
-// @desc    Get job by ID
-// @access  Private
 router.get('/:id', auth, async (req, res) => {
     try {
         const job = await Job.findById(req.params.id);

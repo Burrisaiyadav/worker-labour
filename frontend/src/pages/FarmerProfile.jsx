@@ -105,7 +105,7 @@ const FarmerProfile = () => {
             <main className="max-w-7xl mx-auto px-6 py-12">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4 mb-6 md:mb-8 lg:mb-12">
                     <div>
-                        <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 tracking-tighter uppercase mb-1 md:mb-2 italic">My Profile</h1>
+                        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 uppercase mb-1 md:mb-2 text-left">My Profile</h1>
                         <p className="text-[8px] md:text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Manage your farm identity and preferences.</p>
                     </div>
                 </div>
@@ -123,7 +123,7 @@ const FarmerProfile = () => {
                                         <div className={`absolute bottom-2 right-2 h-3.5 w-3.5 border-[3px] border-green-600 rounded-full ${isOnline ? 'bg-green-400' : 'bg-gray-400'}`}></div>
                                      </div>
                                 </div>
-                                <h2 className="text-lg md:text-xl font-black text-gray-900 tracking-tighter uppercase italic">{user.name}</h2>
+                                <h2 className="text-lg md:text-xl font-bold text-gray-900 uppercase">{user.name}</h2>
                                 <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1 md:mt-1.5">Farmer • Verified Partner</p>
 
                                 <div className="flex justify-center mt-3 md:mt-4">
@@ -160,7 +160,7 @@ const FarmerProfile = () => {
                         {/* Core Details */}
                          <div className="bg-white rounded-[2.2rem] p-8 shadow-xl shadow-gray-200/50 border border-white">
                             <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter italic">Farm Identity</h3>
+                                <h3 className="text-xl font-bold text-gray-900 uppercase">Farm Identity</h3>
                                 {isEditing ? (
                                     <div className="flex gap-2">
                                         <button onClick={() => setIsEditing(false)} className="h-10 w-10 flex items-center justify-center bg-gray-50 text-gray-500 rounded-xl hover:bg-gray-100 transition-all">
@@ -275,7 +275,7 @@ const FarmerProfile = () => {
                         {/* Crops */}
                          <div className="bg-white rounded-[2.2rem] p-8 shadow-xl shadow-gray-200/50 border border-white">
                              <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter italic">Crops Grown</h3>
+                                <h3 className="text-xl font-bold text-gray-900 uppercase">Crops Grown</h3>
                             </div>
                             <div className="flex flex-wrap gap-4 mb-10">
                                 {user.crops?.length === 0 ? (

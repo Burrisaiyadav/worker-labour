@@ -3,6 +3,7 @@ import LabourNavbar from '../../components/LabourNavbar';
 import { api } from '../../utils/api';
 import { Wallet, ArrowDownLeft, ArrowUpRight, Clock, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
 
 const LabourWallet = () => {
     const navigate = useNavigate();
@@ -27,8 +28,38 @@ const LabourWallet = () => {
                 setLoading(false);
             }
         };
+
         fetchWallet();
+
+        // Real-time synchronization
+        const socket = io('http://localhost:5000');
+        const user = JSON.parse(localStorage.getItem('user'));
+        socket.emit('join', user.id);
+
+        socket.on('payment-verified', () => {
+            console.log('Wallet state sync: Payment received');
+            fetchWallet(); // Refresh balance and transactions
+        });
+
+        return () => socket.disconnect();
     }, []);
+
+    const handleWithdraw = async () => {
+        if (balance <= 0) {
+            alert("No balance to withdraw!");
+            return;
+        }
+        if (window.confirm(`Withdraw ₹${balance} to your bank account?`)) {
+            try {
+                await api.post('/payments/withdraw');
+                alert("Withdrawal request processed! Funds will reach your account soon.");
+                window.location.reload();
+            } catch (err) {
+                console.error(err);
+                alert("Withdrawal failed.");
+            }
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans pb-20">
@@ -41,7 +72,10 @@ const LabourWallet = () => {
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Manage your earnings and withdraw funds.</p>
                     </div>
                     <div className="flex gap-3">
-                        <button className="h-12 px-6 bg-green-600 text-white rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-green-100 hover:bg-green-700 transition-all active:scale-95">
+                        <button 
+                            onClick={handleWithdraw}
+                            className="h-12 px-6 bg-green-600 text-white rounded-2xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-green-100 hover:bg-green-700 transition-all active:scale-95"
+                        >
                             <Download size={16} /> Withdraw All
                         </button>
                     </div>

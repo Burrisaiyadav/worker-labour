@@ -82,7 +82,7 @@ const Login = () => {
             <div className="h-16 w-16 md:h-20 md:w-20 bg-green-600 rounded-2xl md:rounded-[2rem] flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-2xl shadow-green-200">
                 <Lock className="h-10 w-10 text-white" />
             </div>
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 tracking-tighter uppercase mb-3 md:mb-4 italic">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 uppercase mb-3 md:mb-4">
             Welcome back
           </h2>
           <p className="text-[8px] md:text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-relaxed">
@@ -140,12 +140,20 @@ const Login = () => {
                         <input
                             id="otp"
                             name="otp"
-                            type="text"
+                            type="tel"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
                             required
+                            maxLength={6}
                             className="appearance-none rounded-2xl md:rounded-[2rem] relative block w-full pl-14 md:pl-16 px-5 md:px-6 py-4 md:py-6 border-2 border-gray-100 placeholder-gray-300 text-gray-900 font-bold text-lg md:text-xl focus:outline-none focus:border-green-500 transition-all shadow-xl shadow-gray-100/50"
                             placeholder="6-digit OTP"
                             value={otp}
-                            onChange={onChange}
+                            onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, ''); // Only numbers
+                                if (val.length <= 6) {
+                                    setFormData({ ...formData, otp: val });
+                                }
+                            }}
                         />
                     </div>
                 </div>

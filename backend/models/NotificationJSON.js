@@ -20,6 +20,7 @@ class NotificationJSON {
         this.message = data.message;
         this.type = data.type || 'info'; // payment, job, alert, info
         this.read = data.read || false;
+        this.metadata = data.metadata || {}; // Additional info like groupId
         this.createdAt = data.createdAt || new Date();
     }
 

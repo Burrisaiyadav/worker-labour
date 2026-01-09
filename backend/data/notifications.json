@@ -178,5 +178,74 @@
     "type": "job",
     "read": false,
     "createdAt": "2026-01-07T18:02:17.119Z"
+  },
+  {
+    "id": "334ec647-91b1-46df-84bc-50b68523d16a",
+    "userId": "e67fc1c1-ffc1-444b-8815-5f29d8c24bef",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": false,
+    "createdAt": "2026-01-08T12:45:22.112Z"
+  },
+  {
+    "id": "be91b2a4-197d-4064-a035-dbce97112843",
+    "userId": "e67fc1c1-ffc1-444b-8815-5f29d8c24bef",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": false,
+    "metadata": {},
+    "createdAt": "2026-01-08T13:28:06.928Z"
+  },
+  {
+    "id": "f34829db-a4fb-4755-aeca-44cdcb137bd4",
+    "userId": "e67fc1c1-ffc1-444b-8815-5f29d8c24bef",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": false,
+    "metadata": {},
+    "createdAt": "2026-01-08T13:28:56.522Z"
+  },
+  {
+    "id": "e72b1a90-d52f-4d07-b745-456f334dc5c8",
+    "userId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "title": "New Hire Request",
+    "message": "burrisai wants to hire you for a job in undefined. Click to chat!",
+    "type": "job",
+    "read": true,
+    "metadata": {},
+    "createdAt": "2026-01-08T13:36:34.962Z"
+  },
+  {
+    "id": "e09a42be-2982-4c67-891f-f8e73270c0d9",
+    "userId": "e67fc1c1-ffc1-444b-8815-5f29d8c24bef",
+    "title": "New Direct Hire",
+    "message": "burrisai has hired you directly for a job! Check your active jobs.",
+    "type": "job",
+    "read": false,
+    "metadata": {},
+    "createdAt": "2026-01-08T13:45:54.726Z"
+  },
+  {
+    "id": "f3be8389-e603-4e6a-bb16-42a2c457c8ba",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "title": "Job Accepted",
+    "message": "loki has accepted your job: Hired sai",
+    "type": "job",
+    "read": true,
+    "metadata": {},
+    "createdAt": "2026-01-08T13:49:15.655Z"
+  },
+  {
+    "id": "ff3689e1-c349-434c-97d7-675935d55b50",
+    "userId": "e67fc1c1-ffc1-444b-8815-5f29d8c24bef",
+    "title": "New Direct Hire",
+    "message": "burrisai has hired you directly for a job! Click to chat!",
+    "type": "job",
+    "read": false,
+    "metadata": {},
+    "createdAt": "2026-01-08T15:50:40.445Z"
   }
 ]

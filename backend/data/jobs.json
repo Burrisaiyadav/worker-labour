@@ -87,5 +87,37 @@
     "paymentStatus": "Pending",
     "paymentId": null,
     "createdAt": "2026-01-07T17:30:38.210Z"
+  },
+  {
+    "id": "9cdd8e3b-4968-4f87-8bab-45081fcfb576",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "farmerName": "burrisai",
+    "title": "Hired sai",
+    "date": "2026-01-08T13:45:54.705Z",
+    "workers": 1,
+    "cost": 500,
+    "description": "Direct hire from Marketplace for sai",
+    "location": "Punjab",
+    "status": "In Progress",
+    "assignedTo": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "paymentStatus": "Pending",
+    "paymentId": null,
+    "createdAt": "2026-01-08T13:45:54.713Z"
+  },
+  {
+    "id": "4c395536-4463-4ea5-9081-1b6a3c85175e",
+    "userId": "7b475592-016c-4086-a56c-ae92651ebf3a",
+    "farmerName": "burrisai",
+    "title": "Hired sai",
+    "date": "2026-01-08T15:50:40.147Z",
+    "workers": 1,
+    "cost": 500,
+    "description": "Direct hire from Marketplace for sai",
+    "location": "Punjab",
+    "status": "Active",
+    "assignedTo": null,
+    "paymentStatus": "Pending",
+    "paymentId": null,
+    "createdAt": "2026-01-08T15:50:40.227Z"
   }
 ]

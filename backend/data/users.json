@@ -14,8 +14,10 @@
     "rate": "",
     "accountType": "individual",
     "groupMembersCount": 0,
+    "loginOtp": "6235",
+    "loginOtpExpire": 1767887703208,
     "createdAt": "2025-12-18T11:24:40.043Z",
-    "updatedAt": "2026-01-07T18:47:22.404Z"
+    "updatedAt": "2026-01-08T15:45:03.208Z"
   },
   {
     "id": "7dc449ee-67d4-4e04-9e75-f6d5ea2f502f",
@@ -107,10 +109,10 @@
     "experience": "",
     "radius": "",
     "rate": "",
-    "accountType": "individual",
+    "accountType": "group",
     "groupMembersCount": 0,
     "createdAt": "2025-12-20T18:09:40.244Z",
-    "updatedAt": "2026-01-07T18:43:17.241Z"
+    "updatedAt": "2026-01-08T15:43:00.401Z"
   },
   {
     "id": "32dd6796-df12-4a17-9d29-80e2dccd199d",

@@ -282,7 +282,7 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
                             {activeChat.name.charAt(0)}
                         </div>
                         <div>
-                            <h1 className="text-base md:text-lg font-black text-gray-900 leading-tight tracking-tighter truncate max-w-[120px] md:max-w-[200px] uppercase text-left italic">{activeChat.name}</h1>
+                            <h1 className="text-base md:text-lg font-bold text-gray-900 leading-tight truncate max-w-[120px] md:max-w-[200px] uppercase text-left">{activeChat.name}</h1>
                             <div className="flex items-center gap-1">
                                 <span className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse"></span>
                                 <p className="text-[8px] md:text-[9px] lg:text-[10px] text-green-600 font-black uppercase tracking-widest">Active Now</p>
@@ -291,7 +291,7 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
                     </div>
                 ) : (
                     <div>
-                        <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tighter uppercase italic">Intelligence Hub</h1>
+                        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 uppercase">Messages</h1>
                         <p className="text-[8px] md:text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Your encrypted chats</p>
                     </div>
                 )}
@@ -349,7 +349,7 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
                             <div className="h-20 w-20 md:h-24 md:w-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-5 md:mb-6">
                                 <Send className="h-8 w-8 md:h-10 md:w-10 text-gray-200" />
                             </div>
-                            <h3 className="text-xl md:text-2xl font-black text-gray-900 tracking-tighter uppercase italic">No Activity</h3>
+                            <h3 className="text-xl md:text-2xl font-bold text-gray-900 uppercase">No Activity</h3>
                             <p className="text-gray-400 font-bold max-w-sm mx-auto mt-3 md:mt-4 text-[9px] md:text-[10px] lg:text-sm uppercase tracking-widest leading-relaxed">Start a conversation to discuss job details, timing, and payments.</p>
                         </div>
                     ) : (
@@ -360,7 +360,7 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start mb-0.5 md:mb-1">
-                                        <h3 className="font-black text-gray-900 text-base md:text-lg tracking-tighter uppercase italic">{chat.name}</h3>
+                                        <h3 className="font-bold text-gray-900 text-base md:text-lg uppercase">{chat.name}</h3>
                                         <span className="text-[8px] md:text-[10px] font-black text-gray-400">{chat.time}</span>
                                     </div>
                                     <p className="text-[10px] md:text-sm font-bold text-gray-500 truncate">{chat.lastMsg}</p>

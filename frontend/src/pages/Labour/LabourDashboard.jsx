@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import LabourNavbar from '../../components/LabourNavbar';
 import { api } from '../../utils/api';
-import { MapPin, Clock, DollarSign, Briefcase, Calendar, CheckCircle, QrCode, X, Activity, Scan, Star } from 'lucide-react';
+import { MapPin, Clock, DollarSign, Briefcase, Calendar, CheckCircle, QrCode, X, Activity, Scan, Star, Users, UserPlus, Trash2, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import JobDetailsModal from '../../components/JobDetailsModal';
 import Messages from '../Messages';
+import CreateGroupModal from '../../components/CreateGroupModal';
+import GroupDetailsModal from '../../components/GroupDetailsModal';
+import JoinGroupModal from '../../components/JoinGroupModal';
 
 const LabourDashboard = () => {
     const [jobs, setJobs] = useState([]);
-    const [activeJobs, setActiveJobs] = useState([]); // Added activeJobs
+    const [activeJobs, setActiveJobs] = useState([]); 
+    const [myGroups, setMyGroups] = useState([]);
+    const [pendingGroups, setPendingGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [socket, setSocket] = useState(null);
     const [showQR, setShowQR] = useState(false);
@@ -18,31 +23,33 @@ const LabourDashboard = () => {
     const [selectedChatGroup, setSelectedChatGroup] = useState(null);
     const [selectedJobId, setSelectedJobId] = useState(null);
     const [isPaying, setIsPaying] = useState(false);
+    const [showCreateGroup, setShowCreateGroup] = useState(false);
+    const [showJoinGroup, setShowJoinGroup] = useState(false);
+    const [showGroupDetails, setShowGroupDetails] = useState(null);
     const navigate = useNavigate();
 
     // Mock User from local storage for display
     const user = JSON.parse(localStorage.getItem('user')) || { name: 'Worker', id: '123' };
 
     useEffect(() => {
-        const fetchAvailableJobs = async () => {
-            // ... (keep existing fetch logic)
+        const fetchInitialData = async () => {
             try {
                 const data = await api.get('/jobs/available');
-                if (!data) return;
-                const formattedJobs = data.map(job => ({
-                    id: job?.id,
-                    farmer: job?.farmerName || 'Farmer', 
-                    farmerId: job?.userId,
-                    type: job?.title,
-                    location: job?.location || 'Unknown Location',
-                    date: job?.date ? new Date(job.date).toLocaleString() : 'N/A',
-                    wage: job?.cost,
-                    workers: job?.workers,
-                    status: job?.status
-                }));
-                setJobs(formattedJobs);
+                if (data) {
+                    const formattedJobs = data.map(job => ({
+                        id: job?.id,
+                        farmer: job?.farmerName || 'Farmer', 
+                        farmerId: job?.userId,
+                        type: job?.title,
+                        location: job?.location || 'Unknown Location',
+                        date: job?.date ? new Date(job.date).toLocaleString() : 'N/A',
+                        wage: job?.cost,
+                        workers: job?.workers,
+                        status: job?.status
+                    }));
+                    setJobs(formattedJobs);
+                }
 
-                // Fetch Job History
                 const activeData = await api.get('/jobs/labour/active');
                 if (activeData) {
                     setActiveJobs(activeData.map(job => ({
@@ -52,26 +59,51 @@ const LabourDashboard = () => {
                         wage: job?.cost
                     })));
                 }
+
+                const groupData = await api.get('/groups/my-groups');
+                if (groupData) {
+                    setMyGroups(groupData);
+                }
+
+                const pendingData = await api.get('/groups/pending-requests');
+                if (pendingData) {
+                    setPendingGroups(pendingData);
+                }
+
                 setLoading(false);
             } catch (err) {
-                console.error("Failed to fetch jobs", err);
+                console.error("Failed to fetch dashboard data", err);
                 setLoading(false);
             }
         };
 
-        fetchAvailableJobs();
+        fetchInitialData();
 
         const newSocket = io('http://localhost:5000');
         newSocket.emit('join', user.id);
         
         newSocket.on('new-notification', (notif) => {
             console.log("New notification received:", notif);
-            // Optionally update unread count in navbar if handled here
+            // Show custom alert or toast
+            alert(`Notification: ${notif.title}\n${notif.message}`);
+            fetchInitialData(); // Refresh all to be sure
         });
 
-        const fetchInitialData = async () => {
-             // ... move fetch here? actually let's just make sure unread is handled
-        };
+        newSocket.on('new-job', (job) => {
+            console.log("New job available:", job);
+            setJobs(prev => [job, ...prev]);
+        });
+
+        newSocket.on('job-status-updated', (updatedJob) => {
+            console.log("Job status updated:", updatedJob);
+            fetchInitialData();
+        });
+
+        newSocket.on('payment-verified', ({ job, payment }) => {
+            console.log("Payment verified:", payment);
+            alert(`Real-time Update: Payment of ₹${payment.amount} received!`);
+            fetchInitialData();
+        });
 
         setSocket(newSocket);
 
@@ -154,9 +186,9 @@ const LabourDashboard = () => {
 
             <main className="max-w-7xl mx-auto px-6 py-8">
                 {/* Welcome Section */}
-                <div className="mb-6 lg:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4">
+                <div className="mb-4 lg:mb-6 flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4">
                     <div>
-                        <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 tracking-tighter flex items-center gap-2">
+                        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 flex items-center gap-2">
                             Welcome back, <span className="text-green-600">{user.name?.split(' ')[0] || 'Worker'}</span>!
                             {user.accountType === 'group' && (
                                 <span className="text-[8px] md:text-[9px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-lg uppercase tracking-widest align-middle ml-2">Group</span>
@@ -172,20 +204,20 @@ const LabourDashboard = () => {
                 </div>
 
                 {/* Status Cards */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-8 lg:mb-12">
-                    <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-[1.8rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-green-50 transition-all group">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 lg:mb-8">
+                    <div className="bg-white p-4 md:p-5 rounded-2xl md:rounded-[1.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-green-50 transition-all group">
                         <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-green-600 transition-colors">Total Earnings</p>
                         <p className="text-xl md:text-2xl font-black text-green-600 tracking-tighter">₹{activeJobs.reduce((sum, j) => sum + (j.status === 'Completed' ? Number(j.wage || j.cost || 0) : 0), 0) + 12450}</p>
                     </div>
-                    <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-[1.8rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-blue-50 transition-all group">
+                    <div className="bg-white p-4 md:p-5 rounded-2xl md:rounded-[1.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-blue-50 transition-all group">
                         <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-blue-600 transition-colors">Work Done</p>
                         <p className="text-xl md:text-2xl font-black text-gray-900 tracking-tighter">{activeJobs.filter(j => j.status === 'Completed').length + 24} Jobs</p>
                     </div>
-                    <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-[1.8rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-yellow-50 transition-all group">
+                    <div className="bg-white p-4 md:p-5 rounded-2xl md:rounded-[1.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-yellow-50 transition-all group">
                         <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-yellow-600 transition-colors">Rating</p>
                         <p className="text-xl md:text-2xl font-black text-yellow-500 flex items-center gap-1.5 tracking-tighter">4.9 <Star className="h-4 w-4 md:h-5 md:w-5 fill-current" /></p>
                     </div>
-                    <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-[1.8rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-orange-50 transition-all group">
+                    <div className="bg-white p-4 md:p-5 rounded-2xl md:rounded-[1.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-orange-50 transition-all group">
                         <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-orange-600 transition-colors">Active Jobs</p>
                         <p className="text-xl md:text-2xl font-black text-orange-600 tracking-tighter">{activeJobs.filter(j => j.status === 'In Progress').length}</p>
                     </div>
@@ -209,7 +241,7 @@ const LabourDashboard = () => {
                                 <div className="mx-auto h-12 w-12 md:h-16 md:w-16 bg-gray-50 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-5">
                                     <Briefcase className="h-6 w-6 md:h-8 md:w-8 text-gray-200" />
                                 </div>
-                                <h3 className="text-xl md:text-2xl font-black text-gray-900 tracking-tighter italic uppercase">No New Requests</h3>
+                                <h3 className="text-xl md:text-2xl font-bold text-gray-900 uppercase">No New Requests</h3>
                                 <p className="text-gray-400 font-bold max-w-xs mx-auto mt-2 md:mt-3 text-[8px] md:text-[9px] uppercase tracking-widest leading-relaxed">System status optimal. Waiting for new opportunities.</p>
                             </div>
                         ) : (
@@ -231,7 +263,7 @@ const LabourDashboard = () => {
                                         <div className="flex-1 p-6 flex flex-col justify-between">
                                             <div>
                                                 <div className="flex justify-between items-start mb-1">
-                                                    <h3 className="text-xl font-black text-gray-900 tracking-tighter italic uppercase">{job.type} Work</h3>
+                                                    <h3 className="text-xl font-bold text-gray-900 uppercase">{job.type} Work</h3>
                                                 </div>
                                                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4">Posted by <span className="text-gray-900">{job.farmer}</span></p>
                                                 
@@ -246,7 +278,7 @@ const LabourDashboard = () => {
                                                     </div>
                                                     <div className="bg-green-50/50 px-3 py-2 rounded-xl flex items-center gap-2 border border-green-50/50">
                                                         <DollarSign className="h-3.5 w-3.5 text-green-600" />
-                                                        <span className="text-xs font-black text-green-700 uppercase tracking-tighter italic">₹{job.wage}/day</span>
+                                                        <span className="text-xs font-bold text-green-700 uppercase">₹{job.wage}/day</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -270,6 +302,111 @@ const LabourDashboard = () => {
                                 </div>
                             ))
                         )}
+
+                        {/* Groups Section */}
+                        <div className="space-y-6 mt-12">
+                            <div className="flex justify-between items-center">
+                                <h2 className="text-xl font-bold text-gray-900">My Groups</h2>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => setShowJoinGroup(true)}
+                                        className="bg-white border-2 border-green-600 text-green-600 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-green-50 transition-all shadow-sm"
+                                    >
+                                        <UserPlus size={16} /> Join Group
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowCreateGroup(true)}
+                                        className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                                    >
+                                        <Plus size={16} /> New Group
+                                    </button>
+                                </div>
+                            </div>
+
+                            {myGroups.length === 0 ? (
+                                <div className="bg-white rounded-2xl p-10 text-center border-2 border-dashed border-gray-100">
+                                    <div className="mx-auto h-16 w-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+                                        <Users className="h-8 w-8 text-blue-400" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900 uppercase">No Groups Yet</h3>
+                                    <p className="text-gray-400 font-bold max-w-xs mx-auto mt-2 text-[8px] md:text-[9px] uppercase tracking-widest leading-relaxed mb-6">Form a group to work together and increase earnings.</p>
+                                    
+                                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                                        <button 
+                                            onClick={() => setShowCreateGroup(true)}
+                                            className="px-6 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                                        >
+                                            Create New Group
+                                        </button>
+                                        <button 
+                                            onClick={() => setShowJoinGroup(true)}
+                                            className="px-6 py-3 bg-white border-2 border-green-600 text-green-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-50 transition-all"
+                                        >
+                                            Join Existing Group
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {myGroups.map(group => (
+                                        <div key={group.id} className="bg-white p-6 rounded-[2.2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <img src={group.image} alt={group.name} className="h-14 w-14 rounded-2xl object-cover" />
+                                                <div>
+                                                    <h3 className="font-bold text-gray-900 uppercase">{group.name}</h3>
+                                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{group.location}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between mb-4 bg-gray-50 p-3 rounded-xl">
+                                                <div className="text-center">
+                                                    <p className="text-[8px] font-bold text-gray-400 uppercase">Members</p>
+                                                    <p className="text-sm font-bold text-gray-900">{group.members?.length || 0}</p>
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-[8px] font-bold text-gray-400 uppercase">Rate</p>
+                                                    <p className="text-sm font-bold text-green-600">₹{group.rate}/day</p>
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-[8px] font-bold text-gray-400 uppercase">Rating</p>
+                                                    <p className="text-sm font-bold text-yellow-500">★ {group.rating}</p>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={() => setShowGroupDetails(group)}
+                                                className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
+                                            >
+                                                Manage Group
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Pending Requests Section */}
+                            {pendingGroups.length > 0 && (
+                                <div className="mt-8">
+                                    <h3 className="text-sm font-black text-amber-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <Clock size={16} /> Pending Join Requests
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {pendingGroups.map(group => (
+                                            <div key={group.id} className="bg-amber-50/30 p-4 rounded-2xl border border-amber-100/50 flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <img src={group.image} alt={group.name} className="h-10 w-10 rounded-xl object-cover grayscale opacity-60" />
+                                                    <div>
+                                                        <p className="font-bold text-gray-700 text-sm uppercase">{group.name}</p>
+                                                        <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Awaiting Approval</p>
+                                                    </div>
+                                                </div>
+                                                <span className="h-8 w-8 bg-white/50 rounded-lg flex items-center justify-center text-amber-500">
+                                                    <Clock size={14} />
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Right Column: Quick Stats / Summary */}
@@ -348,7 +485,7 @@ const LabourDashboard = () => {
                                    <QrCode size={28} />
                                </div>
                                <div>
-                                   <h3 className="font-black text-lg text-gray-900 uppercase tracking-tight italic">Show QR</h3>
+                                   <h3 className="font-bold text-lg text-gray-900 uppercase tracking-tight">Show QR</h3>
                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Mark Attendance</p>
                                </div>
                            </div>
@@ -399,6 +536,43 @@ const LabourDashboard = () => {
                         />
                     </div>
                 </div>
+            )}
+
+            {showCreateGroup && (
+                <CreateGroupModal 
+                    onClose={() => setShowCreateGroup(false)}
+                    onSuccess={() => {
+                        // Update local storage to reflect group status
+                        const userData = JSON.parse(localStorage.getItem('user'));
+                        if (userData) {
+                            userData.accountType = 'group';
+                            localStorage.setItem('user', JSON.stringify(userData));
+                        }
+                        setShowCreateGroup(false);
+                        window.location.reload();
+                    }}
+                />
+            )}
+
+            {showJoinGroup && (
+                <JoinGroupModal 
+                    onClose={() => setShowJoinGroup(false)}
+                    onSuccess={() => {
+                        setShowJoinGroup(false);
+                        window.location.reload();
+                    }}
+                />
+            )}
+
+            {showGroupDetails && (
+                <GroupDetailsModal 
+                    group={showGroupDetails}
+                    onClose={() => setShowGroupDetails(null)}
+                    onSuccess={() => {
+                        setShowGroupDetails(null);
+                        window.location.reload();
+                    }}
+                />
             )}
         </div>
     );

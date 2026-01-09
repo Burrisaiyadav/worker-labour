@@ -65,7 +65,7 @@ const Notifications = () => {
                             <div className="h-10 w-10 md:h-12 md:w-12 bg-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm">
                                 <Bell className="text-green-600 h-5 w-5 md:h-6 md:w-6" />
                             </div>
-                            <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 tracking-tighter italic uppercase">Intelligence Hub</h1>
+                            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 uppercase">Notifications</h1>
                         </div>
                         <p className="text-[8px] md:text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-relaxed max-w-md">
                             Monitor your real-time alerts, payment updates, and job confirmations from one central dashboard.
@@ -88,7 +88,7 @@ const Notifications = () => {
                             <div className="h-24 w-24 bg-green-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
                                 <ShieldCheck className="text-green-600/30" size={40} />
                             </div>
-                            <h3 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter mb-2">Zero Notifications</h3>
+                            <h3 className="text-2xl font-bold text-gray-900 uppercase mb-2">Zero Notifications</h3>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">System status optimal. Waiting for new activity.</p>
                         </div>
                     ) : (
@@ -112,7 +112,7 @@ const Notifications = () => {
                                 
                                 <div className="flex-1">
                                     <div className="flex justify-between items-start mb-2">
-                                        <h4 className={`text-xl font-black italic uppercase tracking-tight ${!n.read ? 'text-gray-900' : 'text-gray-500'}`}>
+                                        <h4 className={`text-xl font-bold uppercase tracking-tight ${!n.read ? 'text-gray-900' : 'text-gray-500'}`}>
                                             {n.title}
                                         </h4>
                                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100 group-hover:border-green-100 transition-colors">
@@ -122,6 +122,36 @@ const Notifications = () => {
                                     <p className={`text-[11px] font-black uppercase tracking-wide leading-relaxed ${!n.read ? 'text-gray-600' : 'text-gray-400'}`}>
                                         {n.message}
                                     </p>
+
+                                    {n.metadata?.groupId && !n.read && (
+                                        <div className="mt-4 flex gap-3">
+                                            <button 
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    try {
+                                                        await api.post(`/groups/${n.metadata.groupId}/accept`);
+                                                        alert('Successfully joined the group!');
+                                                        markAsRead(n.id);
+                                                    } catch (err) {
+                                                        console.error(err);
+                                                        alert('Failed to join group.');
+                                                    }
+                                                }}
+                                                className="px-4 py-2 bg-green-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-green-700 transition-all flex items-center gap-2 shadow-lg shadow-green-100"
+                                            >
+                                                Join Group
+                                            </button>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    markAsRead(n.id);
+                                                }}
+                                                className="px-4 py-2 bg-gray-100 text-gray-500 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
+                                            >
+                                                Ignore
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                                 
                                 {!n.read ? (
@@ -143,7 +173,7 @@ const Notifications = () => {
                                 <ShieldCheck className="text-white" size={20} />
                             </div>
                             <div>
-                                <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest italic">Encrypted Secure Portal</p>
+                                <p className="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Encrypted Secure Portal</p>
                                 <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-0.5">V3.5.0-STABLE</p>
                             </div>
                         </div>

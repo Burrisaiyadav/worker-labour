@@ -148,5 +148,133 @@
     "contact": "8765432109",
     "location": "Patna, Bihar",
     "image": "https://images.unsplash.com/photo-1535090467336-9501f96eef89?auto=format&fit=crop&q=80&w=100"
+  },
+  {
+    "id": "51505d3a-1745-4ff9-901f-9f9eabf30578",
+    "name": "Sai Grp",
+    "rating": 0,
+    "members": [
+      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+    ],
+    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "pendingInvites": [],
+    "rate": "500",
+    "contact": "6301910135",
+    "location": "Trl",
+    "image": "https://images.unsplash.com/photo-1595959154942-8874f6762391?auto=format&fit=crop&q=80&w=400"
+  },
+  {
+    "id": "ed7f8c98-97b2-4f2b-9237-04296dd2eb08",
+    "name": "Sai grp",
+    "rating": 0,
+    "members": [
+      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+    ],
+    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "pendingInvites": [],
+    "rate": "5000",
+    "contact": "6301910135",
+    "location": "trl",
+    "image": "https://images.unsplash.com/photo-1595959154942-8874f6762391?auto=format&fit=crop&q=80&w=400"
+  },
+  {
+    "id": "50d22cdc-c81a-41b5-abf5-728eed54b5c1",
+    "name": "Sai grp",
+    "rating": 0,
+    "members": [
+      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+    ],
+    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "pendingInvites": [],
+    "rate": "1000",
+    "contact": "6301910135",
+    "location": "Trl",
+    "image": "https://images.unsplash.com/photo-1595959154942-8874f6762391?auto=format&fit=crop&q=80&w=400"
+  },
+  {
+    "id": "88a793cd-aca1-4ba2-8149-61c3a748e97b",
+    "name": "sai",
+    "rating": 0,
+    "members": [
+      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+    ],
+    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "pendingInvites": [],
+    "rate": "100",
+    "contact": "255252145",
+    "location": "441",
+    "image": "https://images.unsplash.com/photo-1595959154942-8874f6762391?auto=format&fit=crop&q=80&w=400"
+  },
+  {
+    "id": "ae646dd4-2682-4d4b-b3ee-108c0f3124eb",
+    "name": "valley",
+    "rating": 0,
+    "members": [
+      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+    ],
+    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "pendingInvites": [],
+    "rate": "450",
+    "contact": "8520963074",
+    "location": "mrk",
+    "image": "https://images.unsplash.com/photo-1595959154942-8874f6762391?auto=format&fit=crop&q=80&w=400"
+  },
+  {
+    "id": "afdf0662-f985-4699-b658-2e9dd45af6d4",
+    "name": "valley work",
+    "rating": 0,
+    "members": [
+      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+    ],
+    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "pendingInvites": [],
+    "rate": "520",
+    "contact": "6301910135",
+    "location": "mrk",
+    "image": "https://images.unsplash.com/photo-1595959154942-8874f6762391?auto=format&fit=crop&q=80&w=400"
+  },
+  {
+    "id": "f8751144-9d0f-43b1-b191-6de1383e2f5d",
+    "name": "fgg",
+    "rating": 0,
+    "members": [
+      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+    ],
+    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "pendingInvites": [],
+    "rate": "54",
+    "contact": "555555522",
+    "location": "gf",
+    "image": "https://images.unsplash.com/photo-1595959154942-8874f6762391?auto=format&fit=crop&q=80&w=400"
+  },
+  {
+    "id": "7d9210a8-735b-4f81-982d-ef612fc1d85e",
+    "name": "gvd",
+    "rating": 0,
+    "members": [
+      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+    ],
+    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "pendingInvites": [],
+    "rate": "500",
+    "contact": "5105205225",
+    "location": "mrk",
+    "image": "https://images.unsplash.com/photo-1595959154942-8874f6762391?auto=format&fit=crop&q=80&w=400"
+  },
+  {
+    "id": "5aecd289-172e-4346-afa1-7938d5efd72a",
+    "name": "",
+    "rating": 0,
+    "members": [
+      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+    ],
+    "joinRequests": [],
+    "pendingInvites": [],
+    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "rate": "",
+    "contact": "",
+    "location": "",
+    "image": "https://images.unsplash.com/photo-1595959154942-8874f6762391?auto=format&fit=crop&q=80&w=400",
+    "membersCount": 1
   }
 ]

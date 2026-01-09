@@ -18,44 +18,56 @@ router.get('/farmer', auth, async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        // --- MOCK DATA GENERATION BASED ON LOCATION ---
+        // --- REAL DATA FETCHING ---
         const location = user.location ? user.location.toLowerCase() : '';
-        let activeJobs = [];
-        let nearbyGroups = [];
-
-        // Dynamic Job Generation
-        // Fetch Real Active Jobs from JSON Storage
-        // Filter out completed if you only want active? For dashboard stats we might want all or just active.
-        // Let's get all user's jobs and filter for 'Active' or 'In Progress' for the list
         const allUserJobs = await Job.find({ userId: req.user.id });
+        const activeJobs = allUserJobs.filter(j => j.status !== 'Completed');
 
-        // Map to format expected by Frontend if needed, or ensure frontend uses standard format
-        // The JobJSON structure matches what we want mostly.
-        activeJobs = allUserJobs.filter(j => j.status !== 'Completed');
+        // Fetch All Labour Groups
+        const allGroups = await LabourGroup.find();
 
-        // If no real jobs, maybe keep mock data? 
-        // User requested "real use", so let's stick to real data even if empty.
-        // But for "nearbyGroups", we still need mock data as we don't have Workers DB yet.
-
-        // Fetch Real Labourers filtered by Location (Nearby Workers)
-        const allLabourers = await User.find({ role: 'labour' });
-        nearbyGroups = allLabourers.filter(l =>
-            l.location && l.location.toLowerCase().includes(location)
+        // 1. Nearby Groups: Filter by proximity (location match)
+        nearbyGroups = allGroups.filter(g =>
+            g.location && g.location.toLowerCase().includes(location)
         );
 
-        // Fallback: If no local workers found, show some others for demo
-        if (nearbyGroups.length === 0) {
-            nearbyGroups = allLabourers.slice(0, 5);
-        }
+        // 2. Big Groups: Filter by size (e.g., > 5 members) or just top largest
+        // Sort by members count descending and take top ones
+        const bigGroups = allGroups
+            .filter(g => (g.membersCount || (g.members && g.members.length) || 0) >= 1) // For now any group is eligible, but we sort by size
+            .sort((a, b) => {
+                const countA = a.membersCount || (a.members && a.members.length) || 0;
+                const countB = b.membersCount || (b.members && b.members.length) || 0;
+                return countB - countA;
+            })
+            .slice(0, 6); // Top 6 largest groups
 
-        // Enrich jobs with assigned worker names
+        // Enrich groups with member counts if needed (LabourGroupJSON already does this mostly)
+
+        // Enrich jobs with assigned worker/group details
         const enrichedJobs = await Promise.all(activeJobs.map(async (job) => {
             if (job.assignedTo) {
-                const worker = await User.findById(job.assignedTo);
+                // Try finding in Users first (Individual)
+                let worker = await User.findById(job.assignedTo);
+
+                // If not found in Users, it might be a Group ID
+                if (!worker) {
+                    const group = allGroups.find(g => g.id === job.assignedTo);
+                    if (group) {
+                        return {
+                            ...job,
+                            assignedToName: group.name,
+                            assignedToPhone: group.contact,
+                            isGroup: true
+                        };
+                    }
+                }
+
                 return {
                     ...job,
-                    assignedToName: worker ? worker.name : null,
-                    assignedToPhone: worker ? worker.mobile : null
+                    assignedToName: worker ? worker.name : 'Unknown',
+                    assignedToPhone: worker ? worker.mobile : null,
+                    isGroup: false
                 };
             }
             return job;
@@ -71,7 +83,8 @@ router.get('/farmer', auth, async (req, res) => {
                 profileImage: user.profileImage
             },
             activeJobs: enrichedJobs,
-            nearbyGroups,
+            nearbyGroups: nearbyGroups.length > 0 ? nearbyGroups : allGroups.slice(0, 4),
+            bigGroups,
             stats: {
                 activeJobsCount: activeJobs.length,
                 pendingAction: 1
@@ -79,7 +92,7 @@ router.get('/farmer', auth, async (req, res) => {
         });
 
     } catch (err) {
-        console.error(err.message);
+        console.error("Farmer Dashboard Error:", err.message);
         res.status(500).send('Server Error');
     }
 });

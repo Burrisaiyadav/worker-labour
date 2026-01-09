@@ -16,12 +16,18 @@ class LabourGroupJSON {
     constructor(data) {
         this.id = data.id || uuidv4();
         this.name = data.name;
-        this.rating = data.rating;
-        this.members = data.members;
+        this.rating = data.rating || 0;
+        this.members = Array.isArray(data.members) ? data.members : [];
+        this.joinRequests = Array.isArray(data.joinRequests) ? data.joinRequests : [];
+        this.pendingInvites = Array.isArray(data.pendingInvites) ? data.pendingInvites : [];
+        this.adminId = data.adminId ? String(data.adminId) : null;
         this.rate = data.rate;
         this.contact = data.contact;
-        this.location = data.location; // "Punjab", "Maharashtra", etc. - used for filtering
+        this.location = data.location;
         this.image = data.image || 'https://images.unsplash.com/photo-1595959154942-8874f6762391?auto=format&fit=crop&q=80&w=100';
+
+        // Support both real array and legacy hardcoded counts
+        this.membersCount = Array.isArray(data.members) ? data.members.length : (typeof data.members === 'number' ? data.members : 0);
     }
 
     static async find(query = {}) {
@@ -52,6 +58,13 @@ class LabourGroupJSON {
 
         fs.writeFileSync(dataPath, JSON.stringify(groups, null, 2));
         return this;
+    }
+
+    static async delete(id) {
+        const groups = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+        const filtered = groups.filter(g => g.id !== id);
+        fs.writeFileSync(dataPath, JSON.stringify(filtered, null, 2));
+        return true;
     }
 }
 

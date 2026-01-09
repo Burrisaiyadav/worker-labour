@@ -62,7 +62,7 @@ const PaymentPage = () => {
             <div className="w-20 h-20 bg-red-500/10 rounded-[2rem] flex items-center justify-center mb-6">
                 <ShieldCheck className="h-10 w-10 text-red-500" />
             </div>
-            <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-2">Vault Error</h2>
+            <h2 className="text-2xl font-bold text-white uppercase mb-2">Vault Error</h2>
             <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Transaction credentials not found</p>
             <button onClick={() => navigate(-1)} className="mt-8 px-8 py-4 bg-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all">Go Back</button>
         </div>
@@ -74,7 +74,7 @@ const PaymentPage = () => {
                 <div className="w-20 h-20 md:w-24 md:h-24 bg-green-50 rounded-2xl md:rounded-[2rem] flex items-center justify-center mb-5 md:mb-6 shadow-xl shadow-green-100 group">
                     <CheckCircle2 className="h-10 w-10 md:h-12 md:w-12 text-green-600 group-hover:scale-110 transition-transform duration-500" />
                 </div>
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 mb-2 tracking-tighter uppercase italic">Payment Successful</h1>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 uppercase">Payment Successful</h1>
                 <p className="text-[8px] md:text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 md:mb-8">Your transaction has been securely processed.</p>
                 
                 <div className="bg-gray-900 rounded-2xl md:rounded-[2.5rem] p-6 md:p-8 w-full max-w-sm mb-6 md:mb-8 text-left shadow-xl shadow-gray-200 relative overflow-hidden group">
@@ -129,7 +129,7 @@ const PaymentPage = () => {
                         <ShieldCheck className="h-4 w-4 text-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]" />
                         <span className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-400">Secure Vault</span>
                     </div>
-                    <p className="text-[10px] font-black text-white mt-0.5 tracking-tighter uppercase italic">Step 3 of 3</p>
+                    <p className="text-[10px] font-bold text-white mt-0.5 uppercase">Step 3 of 3</p>
                 </div>
                 <div className="h-12 w-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center font-black text-xs italic text-green-500">
                     {job.farmerName?.charAt(0) || 'F'}
@@ -151,7 +151,7 @@ const PaymentPage = () => {
                     <div className="mt-6 md:mt-8 pt-5 md:pt-6 border-t border-white/5 flex justify-between items-center">
                         <div>
                             <p className="text-[8px] md:text-[9px] font-black text-gray-500 uppercase tracking-widest">{job.type || job.title}</p>
-                            <p className="text-sm md:text-base font-black text-white tracking-tight uppercase italic">{job.group || 'Service Provider'}</p>
+                            <p className="text-sm md:text-base font-bold text-white tracking-tight uppercase">{job.group || 'Service Provider'}</p>
                         </div>
                         <div className="bg-white/5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[7px] md:text-[8px] font-black uppercase tracking-widest text-green-400 border border-white/5">
                             ID: {jobId.slice(-6).toUpperCase()}
@@ -168,7 +168,7 @@ const PaymentPage = () => {
                             <ShieldCheck className="absolute inset-10 h-12 w-12 text-green-500 opacity-50 animate-pulse" />
                         </div>
                         <div className="text-center">
-                            <h2 className="text-2xl font-black tracking-tighter uppercase italic mb-3">Authenticating</h2>
+                             <h2 className="text-2xl font-bold uppercase mb-3">Authenticating</h2>
                             <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">Contacting banking servers...</p>
                         </div>
                     </div>
@@ -202,9 +202,9 @@ const PaymentPage = () => {
                                                 <Icon className="h-5 w-5 md:h-6 md:w-6" />
                                             </div>
                                             <div className="text-left">
-                                                <p className={`font-black text-sm md:text-base tracking-tight uppercase italic transition-colors ${selectedMethod === method.id ? 'text-white' : 'text-gray-300'}`}>
-                                                    {method.name}
-                                                </p>
+                                                 <p className={`font-bold text-sm md:text-base tracking-tight uppercase transition-colors ${selectedMethod === method.id ? 'text-white' : 'text-gray-300'}`}>
+                                                     {method.name}
+                                                 </p>
                                                 <p className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest mt-0.5 transition-colors ${selectedMethod === method.id ? 'text-green-200' : 'text-gray-500'}`}>
                                                     {method.sub}
                                                 </p>

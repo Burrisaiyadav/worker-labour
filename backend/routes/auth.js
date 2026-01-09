@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken'); // Assuming JWT is still needed for session management after OTP
 const User = require('../models/UserJSON');
+const LabourGroup = require('../models/LabourGroupJSON');
 
 // Register
 router.post('/register', async (req, res) => {
@@ -24,6 +25,19 @@ router.post('/register', async (req, res) => {
         });
 
         await user.save();
+
+        // Auto-create Group if accountType is 'group'
+        if (role === 'labour' && accountType === 'group') {
+            const newGroup = new LabourGroup({
+                name: user.name, // Use registered group name
+                rate: 500, // Default rate
+                contact: user.mobile,
+                location: user.location,
+                adminId: user.id,
+                members: [user.id]
+            });
+            await newGroup.save();
+        }
 
         const payload = {
             user: {
@@ -187,12 +201,37 @@ router.put('/profile', auth, async (req, res) => {
 });
 
 // @route   GET /api/auth/labourers
-// @desc    Get all labourers
+// @desc    Get all active groups and individual labourers
 // @access  Private
 router.get('/labourers', auth, async (req, res) => {
     try {
-        const labourers = await User.find({ role: 'labour' });
-        res.json(labourers);
+        const individualLabourers = await User.find({ role: 'labour', accountType: 'individual' });
+        const groups = await LabourGroup.find();
+
+        // Format groups for discovery
+        const groupList = groups.map(g => ({
+            id: g.id,
+            name: g.name,
+            location: g.location || 'Local',
+            rate: g.rate || 450,
+            accountType: 'group',
+            profileImage: g.image,
+            membersCount: g.membersCount,
+            rating: g.rating || 4.8
+        }));
+
+        const individualList = individualLabourers.map(l => ({
+            id: l.id,
+            name: l.name,
+            location: l.location || 'Local',
+            rate: l.rate || 450,
+            accountType: 'individual',
+            profileImage: l.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(l.name)}&background=random`,
+            rating: l.rating || 4.8
+        }));
+
+        const unifiedList = [...groupList, ...individualList];
+        res.json(unifiedList);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');

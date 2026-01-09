@@ -93,17 +93,43 @@ const FarmerDashboard = () => {
     // Hire Interaction
     const handleHire = async (worker) => {
         try {
+            // Create a real job for this direct hire
+            const jobData = {
+                title: worker.accountType === 'group' ? `Group Hire: ${worker.name}` : `Hired ${worker.name}`,
+                description: `Direct hire from Marketplace for ${worker.name}`,
+                cost: worker.rate || 500,
+                workers: worker.membersCount || (worker.members ? worker.members.length : 1),
+                date: new Date().toISOString(),
+                location: worker.location || user.location,
+                assignedTo: worker.id,
+                status: 'In Progress'
+            };
+
+            const newJob = await api.post('/jobs', jobData);
+            
+            // Also send notification
             await api.post('/notifications', {
                 userId: worker.id,
-                title: 'New Hire Request',
-                message: `${user.name} wants to hire you for a job in ${user.location}. Click to chat!`,
-                type: 'job'
+                title: 'New Direct Hire',
+                message: `${user.name} has hired you directly for a job! Check your active jobs.`,
+                type: 'job',
+                metadata: { jobId: newJob.id }
             });
-            alert(`Hire request sent to ${worker.name}! Starting chat...`);
-            handleMessages(worker);
+
+            alert(`Hired ${worker.name} successfully! The job is now active.`);
+            
+            // Refresh dashboard
+            const data = await api.get('/dashboard/farmer');
+            setDashboardData(data);
+            setStats({
+                activeJobsCount: data.activeJobs.length,
+                pendingAction: data.stats.pendingAction
+            });
+
+            handleMessages({ ...worker, id: worker.id, name: worker.name, jobId: newJob.id });
         } catch (err) {
             console.error(err);
-            alert('Failed to send hire request');
+            alert('Failed to complete hire: ' + (err.response?.data?.msg || err.message));
         }
     };
 
@@ -137,18 +163,18 @@ const FarmerDashboard = () => {
                     
                     newSocket.on('job-status-updated', (updatedJob) => {
                         console.log('Job Status Updated:', updatedJob);
-                        api.get('/dashboard/farmer').then(res => {
-                            setDashboardData(res);
-                            setStats({
-                                activeJobsCount: res.activeJobs.length,
-                                pendingAction: res.stats.pendingAction
-                            });
-                        });
+                        fetchDashboardData();
+                    });
+
+                    newSocket.on('payment-verified', (data) => {
+                        console.log('Payment Verified in real-time:', data);
+                        fetchDashboardData();
                     });
 
                     newSocket.on('new-notification', (notif) => {
                         console.log("New notification received:", notif);
-                        alert(`Notification: ${notif.title}\n${notif.message}`);
+                        alert(`Message: ${notif.title}\n${notif.message}`);
+                        fetchDashboardData();
                     });
 
                     setSocket(newSocket);
@@ -201,7 +227,7 @@ const FarmerDashboard = () => {
         </div>
     );
 
-    const { user: currentUserData, activeJobs, nearbyGroups, stats: dashboardStats } = dashboardData;
+    const { user: currentUserData, activeJobs, nearbyGroups, bigGroups, stats: dashboardStats } = dashboardData;
 
     return (
         <div className="min-h-screen bg-gray-50 font-sans">
@@ -214,9 +240,9 @@ const FarmerDashboard = () => {
 
             <main className="max-w-7xl mx-auto px-6 py-8">
                 {/* Welcome Section */}
-                <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 tracking-tighter flex items-center gap-2">
+                        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 flex items-center gap-2">
                             Welcome back, <span className="text-green-600">{user?.name?.split(' ')[0] || 'Farmer'}</span>!
                         </h1>
                         <p className="text-gray-500 mt-2 flex items-center gap-2">
@@ -228,61 +254,61 @@ const FarmerDashboard = () => {
                     </div>
 
                 {/* Massive Primary Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mb-8 lg:mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
                     <button 
                         onClick={handleFindLabour}
-                        className="h-28 md:h-32 lg:h-40 bg-green-600 text-white rounded-2xl md:rounded-[2.2rem] lg:rounded-[3rem] shadow-xl shadow-green-100 flex items-center justify-center gap-4 md:gap-6 lg:gap-8 px-6 md:px-8 lg:px-10 hover:bg-green-700 transition-all hover:scale-[1.02] active:scale-95 group overflow-hidden relative"
+                        className="h-20 md:h-24 lg:h-28 bg-green-600 text-white rounded-2xl md:rounded-[1.8rem] lg:rounded-[2.2rem] shadow-xl shadow-green-100 flex items-center justify-center gap-4 md:gap-5 lg:gap-6 px-6 md:px-7 lg:px-8 hover:bg-green-700 transition-all hover:scale-[1.02] active:scale-95 group overflow-hidden relative"
                     >
-                        <div className="h-14 w-14 md:h-16 md:w-16 lg:h-20 lg:w-20 bg-white/20 rounded-xl md:rounded-[1.5rem] lg:rounded-[2rem] flex items-center justify-center backdrop-blur-sm group-hover:rotate-12 transition-transform">
-                            <Search className="h-6 w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 text-white" />
+                        <div className="h-10 w-10 md:h-12 md:w-12 lg:h-14 lg:w-14 bg-white/20 rounded-xl md:rounded-[1.2rem] lg:rounded-[1.5rem] flex items-center justify-center backdrop-blur-sm group-hover:rotate-12 transition-transform">
+                            <Search className="h-5 w-5 md:h-6 md:w-6 lg:h-8 lg:w-8 text-white" />
                         </div>
                         <div className="text-left">
-                            <p className="text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-tighter leading-none">Find<br/>Workers</p>
-                            <p className="text-[8px] md:text-[9px] lg:text-[10px] text-green-100 font-bold uppercase tracking-widest mt-1 lg:mt-2 opacity-70">Nearby You</p>
+                            <p className="text-lg md:text-xl lg:text-2xl font-bold uppercase tracking-tight leading-none">Find<br/>Workers</p>
+                            <p className="text-[8px] md:text-[9px] lg:text-[10px] text-green-100 font-bold uppercase tracking-widest mt-1 lg:mt-1.5 opacity-70">Nearby You</p>
                         </div>
                         <div className="absolute -right-6 -bottom-6 md:-right-8 md:-bottom-8 h-20 w-20 md:h-32 md:w-32 bg-white/10 rounded-full"></div>
                     </button>
 
                     <button 
                         onClick={() => setShowPostJob(true)}
-                        className="h-28 md:h-32 lg:h-40 bg-blue-600 text-white rounded-2xl md:rounded-[2.2rem] lg:rounded-[3rem] shadow-xl shadow-blue-100 flex items-center justify-center gap-4 md:gap-6 lg:gap-8 px-6 md:px-8 lg:px-10 hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-95 group overflow-hidden relative"
+                        className="h-20 md:h-24 lg:h-28 bg-blue-600 text-white rounded-2xl md:rounded-[1.8rem] lg:rounded-[2.2rem] shadow-xl shadow-blue-100 flex items-center justify-center gap-4 md:gap-5 lg:gap-6 px-6 md:px-7 lg:px-8 hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-95 group overflow-hidden relative"
                     >
-                        <div className="h-14 w-14 md:h-16 md:w-16 lg:h-20 lg:w-20 bg-white/20 rounded-xl md:rounded-[1.5rem] lg:rounded-[2rem] flex items-center justify-center backdrop-blur-sm group-hover:-rotate-12 transition-transform">
-                            <PlusCircle className="h-6 w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 text-white" />
+                        <div className="h-10 w-10 md:h-12 md:w-12 lg:h-14 lg:w-14 bg-white/20 rounded-xl md:rounded-[1.2rem] lg:rounded-[1.5rem] flex items-center justify-center backdrop-blur-sm group-hover:-rotate-12 transition-transform">
+                            <PlusCircle className="h-5 w-5 md:h-6 md:w-6 lg:h-8 lg:w-8 text-white" />
                         </div>
                         <div className="text-left">
-                            <p className="text-xl md:text-2xl lg:text-3xl font-black uppercase tracking-tighter leading-none">Post New<br/>Job</p>
-                            <p className="text-[8px] md:text-[9px] lg:text-[10px] text-blue-100 font-bold uppercase tracking-widest mt-1 lg:mt-2 opacity-70">Get Work Done</p>
+                            <p className="text-lg md:text-xl lg:text-2xl font-bold uppercase tracking-tight leading-none">Post New<br/>Job</p>
+                            <p className="text-[8px] md:text-[9px] lg:text-[10px] text-blue-100 font-bold uppercase tracking-widest mt-1 lg:mt-1.5 opacity-70">Get Work Done</p>
                         </div>
                         <div className="absolute -right-6 -bottom-6 md:-right-8 md:-bottom-8 h-20 w-20 md:h-32 md:w-32 bg-white/10 rounded-full"></div>
                     </button>
                 </div>
 
                 {/* Secondary Fast Actions */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4 mb-8 lg:mb-12">
-                    <button onClick={() => setShowScanQR(true)} className="p-4 md:p-5 lg:p-6 bg-white border border-gray-100 rounded-2xl md:rounded-[1.8rem] lg:rounded-[2.5rem] flex flex-col items-center gap-2 md:gap-3 hover:border-purple-200 transition-all shadow-sm group">
-                        <div className="h-9 w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 bg-purple-50 rounded-xl md:rounded-2xl flex items-center justify-center group-hover:bg-purple-100 transition-colors">
-                            <QrCode className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-purple-600" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4 mb-6 lg:mb-8">
+                    <button onClick={() => setShowScanQR(true)} className="p-3 md:p-4 bg-white border border-gray-100 rounded-2xl md:rounded-[1.5rem] lg:rounded-[1.8rem] flex flex-col items-center gap-2 md:gap-3 hover:border-purple-200 transition-all shadow-sm group">
+                        <div className="h-8 w-8 md:h-9 md:w-9 lg:h-10 lg:w-10 bg-purple-50 rounded-xl md:rounded-[1.2rem] flex items-center justify-center group-hover:bg-purple-100 transition-colors">
+                            <QrCode className="h-4 w-4 md:h-4 md:w-4 lg:h-5 lg:w-5 text-purple-600" />
                         </div>
-                        <span className="text-[8px] md:text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors">Attendance</span>
+                        <span className="text-[8px] md:text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors">Attendance</span>
                     </button>
-                    <button onClick={handleMyJobs} className="p-4 md:p-5 lg:p-6 bg-white border border-gray-100 rounded-2xl md:rounded-[1.8rem] lg:rounded-[2.5rem] flex flex-col items-center gap-2 md:gap-3 hover:border-orange-200 transition-all shadow-sm group">
-                        <div className="h-9 w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 bg-orange-50 rounded-xl md:rounded-2xl flex items-center justify-center group-hover:bg-orange-100 transition-colors">
-                            <Activity className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-orange-600" />
+                    <button onClick={handleMyJobs} className="p-3 md:p-4 bg-white border border-gray-100 rounded-2xl md:rounded-[1.5rem] lg:rounded-[1.8rem] flex flex-col items-center gap-2 md:gap-3 hover:border-orange-200 transition-all shadow-sm group">
+                        <div className="h-8 w-8 md:h-9 md:w-9 lg:h-10 lg:w-10 bg-orange-50 rounded-xl md:rounded-[1.2rem] flex items-center justify-center group-hover:bg-orange-100 transition-colors">
+                            <Activity className="h-4 w-4 md:h-4 md:w-4 lg:h-5 lg:w-5 text-orange-600" />
                         </div>
-                        <span className="text-[8px] md:text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors">My Jobs ({stats.activeJobsCount})</span>
+                        <span className="text-[8px] md:text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors">My Jobs ({stats.activeJobsCount})</span>
                     </button>
-                    <button onClick={() => setShowMessages(true)} className="p-4 md:p-5 lg:p-6 bg-white border border-gray-100 rounded-2xl md:rounded-[1.8rem] lg:rounded-[2.5rem] flex flex-col items-center gap-2 md:gap-3 hover:border-green-200 transition-all shadow-sm group">
-                        <div className="h-9 w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 bg-green-50 rounded-xl md:rounded-2xl flex items-center justify-center group-hover:bg-green-100 transition-colors">
-                            <MessageCircle className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-green-600" />
+                    <button onClick={() => setShowMessages(true)} className="p-3 md:p-4 bg-white border border-gray-100 rounded-2xl md:rounded-[1.5rem] lg:rounded-[1.8rem] flex flex-col items-center gap-2 md:gap-3 hover:border-green-200 transition-all shadow-sm group">
+                        <div className="h-8 w-8 md:h-9 md:w-9 lg:h-10 lg:w-10 bg-green-50 rounded-xl md:rounded-[1.2rem] flex items-center justify-center group-hover:bg-green-100 transition-colors">
+                            <MessageCircle className="h-4 w-4 md:h-4 md:w-4 lg:h-5 lg:w-5 text-green-600" />
                         </div>
-                        <span className="text-[8px] md:text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors">Chats</span>
+                        <span className="text-[8px] md:text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors">Chats</span>
                     </button>
-                    <button onClick={handleViewMap} className="p-4 md:p-5 lg:p-6 bg-white border border-gray-100 rounded-2xl md:rounded-[1.8rem] lg:rounded-[2.5rem] flex flex-col items-center gap-2 md:gap-3 hover:border-indigo-200 transition-all shadow-sm group">
-                        <div className="h-9 w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 bg-indigo-50 rounded-xl md:rounded-2xl flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-                            <MapPin className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-indigo-600" />
+                    <button onClick={handleViewMap} className="p-3 md:p-4 bg-white border border-gray-100 rounded-2xl md:rounded-[1.5rem] lg:rounded-[1.8rem] flex flex-col items-center gap-2 md:gap-3 hover:border-indigo-200 transition-all shadow-sm group">
+                        <div className="h-8 w-8 md:h-9 md:w-9 lg:h-10 lg:w-10 bg-indigo-50 rounded-xl md:rounded-[1.2rem] flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                            <MapPin className="h-4 w-4 md:h-4 md:w-4 lg:h-5 lg:w-5 text-indigo-600" />
                         </div>
-                        <span className="text-[8px] md:text-[9px] lg:text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors">Live Map</span>
+                        <span className="text-[8px] md:text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-gray-900 transition-colors">Live Map</span>
                     </button>
                 </div>
                 </div>
@@ -291,7 +317,7 @@ const FarmerDashboard = () => {
                     {/* Left Column: Active Jobs */}
                     <div className="lg:col-span-2 space-y-8">
                         <div className="flex justify-between items-end">
-                            <h2 className="text-2xl font-black text-gray-900 tracking-tighter">Active Jobs</h2>
+                            <h2 className="text-2xl font-bold text-gray-900">Active Jobs</h2>
                             <button onClick={handleMyJobs} className="text-green-600 text-xs font-black uppercase tracking-widest hover:underline">View All</button>
                         </div>
                         
@@ -302,9 +328,9 @@ const FarmerDashboard = () => {
                             </div>
                         ) : (
                             activeJobs.map(job => (
-                                <div key={job.id} className="bg-white rounded-[3rem] overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl hover:shadow-gray-100 transition-all duration-500 overflow-hidden group">
+                                <div key={job.id} className="bg-white rounded-[2.2rem] overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl hover:shadow-gray-100 transition-all duration-500 overflow-hidden group">
                                     <div className="flex flex-col sm:flex-row">
-                                        <div className="sm:w-64 h-48 sm:h-auto bg-gray-100 relative overflow-hidden">
+                                        <div className="sm:w-56 h-48 sm:h-auto bg-gray-100 relative overflow-hidden">
                                             <img 
                                                 src={job.image} 
                                                 alt={job.title} 
@@ -319,12 +345,12 @@ const FarmerDashboard = () => {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="flex-1 p-8 flex flex-col justify-between">
+                                        <div className="flex-1 p-6 flex flex-col justify-between">
                                             <div>
                                                 <div className="flex justify-between items-start mb-2">
-                                                    <h3 className="text-2xl font-black text-gray-900 tracking-tighter">{job.title}</h3>
+                                                    <h3 className="text-xl font-black text-gray-900 tracking-tighter">{job.title}</h3>
                                                 </div>
-                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Team: <span className="text-gray-900">{job.group || job.assignedToName || 'Wait...'}</span></p>
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Team: <span className="text-gray-900">{job.group || job.assignedToName || 'Wait...'}</span></p>
                                                 
                                                 <div className="flex flex-wrap gap-3">
                                                     <div className="bg-gray-50 px-4 py-3 rounded-2xl flex items-center gap-2 border border-gray-50">
@@ -342,16 +368,16 @@ const FarmerDashboard = () => {
                                                 </div>
                                             </div>
                                             
-                                             <div className="mt-8 flex gap-4">
-                                                <button onClick={() => handleMessages(job)} className="flex-1 h-14 bg-white border-2 border-green-600 text-green-700 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-green-50 transition-all flex items-center justify-center gap-2">
+                                             <div className="mt-6 flex gap-3">
+                                                <button onClick={() => handleMessages(job)} className="flex-1 h-12 bg-white border-2 border-green-600 text-green-700 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-green-50 transition-all flex items-center justify-center gap-2">
                                                     <MessageCircle className="h-5 w-5" /> Chat
                                                 </button>
                                                 {job.assignedToPhone && (
                                                     <a 
                                                         href={`tel:${job.assignedToPhone}`}
-                                                        className="flex-1 h-14 bg-green-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-100"
+                                                        className="flex-1 h-12 bg-green-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-100"
                                                     >
-                                                        <Phone className="h-5 w-5" /> Call
+                                                        <Phone className="h-4 w-4" /> Call
                                                     </a>
                                                 )}
                                             </div>
@@ -362,43 +388,99 @@ const FarmerDashboard = () => {
                         )}
                     </div>
 
-                    {/* Right Column: Suggested Workers */}
+                    {/* Right Column: Suggested Groups */}
                     <div className="space-y-6">
                         <div className="flex justify-between items-end">
-                            <h2 className="text-xl font-bold text-gray-900">Nearby Workers</h2>
+                            <h2 className="text-xl font-bold text-gray-900">Nearby Groups</h2>
                             <button onClick={handleViewMap} className="text-green-600 text-sm font-semibold hover:underline">View Map</button>
                         </div>
                         
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                            {nearbyGroups.length === 0 ? (
-                                <p className="p-8 text-center text-gray-400 italic text-sm">No workers found nearby.</p>
+                            {!nearbyGroups || nearbyGroups.length === 0 ? (
+                                <p className="p-8 text-center text-gray-400 italic text-sm">No groups found nearby.</p>
                             ) : (
-                                nearbyGroups.map((worker, index) => (
-                                    <div key={worker.id} className={`p-4 flex items-center justify-between hover:bg-gray-50 transition-colors ${index !== nearbyGroups.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                                nearbyGroups.map((group, index) => (
+                                    <div key={group.id} className={`p-4 flex items-center justify-between hover:bg-gray-50 transition-colors ${index !== nearbyGroups.length - 1 ? 'border-b border-gray-100' : ''}`}>
                                         <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-sm">
-                                                {worker.name ? worker.name.charAt(0) : 'W'}
+                                            <div className="h-10 w-10 rounded-xl overflow-hidden bg-green-100 flex items-center justify-center text-green-700 font-bold text-sm shadow-sm">
+                                                {group.image ? <img src={group.image} alt={group.name} className="h-full w-full object-cover" /> : (group.name ? group.name.charAt(0) : 'G')}
                                             </div>
                                             <div>
-                                                <h4 className="font-semibold text-gray-900 text-sm">{worker.name || 'Anonymous'}</h4>
-                                                <div className="flex items-center gap-1 text-xs text-gray-500">
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="font-semibold text-gray-900 text-sm uppercase">{group.name || 'Group'}</h4>
+                                                    <span className="bg-blue-50 text-blue-600 text-[8px] font-black px-1.5 py-0.5 rounded uppercase font-bold">Group</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
                                                     <MapPin className="h-3 w-3 text-gray-400" />
-                                                    <span>{worker.location || 'Local'}</span>
-                                                    {worker.rate && (
-                                                        <>
-                                                            <span className="text-gray-300">•</span>
-                                                            <span className="font-medium text-green-600">₹{worker.rate}/day</span>
-                                                        </>
-                                                    )}
+                                                    <span>{group.location || 'Local'}</span>
+                                                    <span className="text-gray-300">•</span>
+                                                    <Users className="h-3 w-3 text-gray-400" />
+                                                    <span>{group.membersCount || group.members?.length || 0} Members</span>
                                                 </div>
                                             </div>
                                         </div>
-                                         <button onClick={() => handleHire(worker)} className="text-green-600 border border-green-200 hover:bg-green-50 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors">
-                                            Hire Now
-                                        </button>
+                                         <div className="flex flex-col items-end gap-1.5">
+                                            <span className="text-xs font-black text-green-600 tracking-tighter">₹{group.rate || '0'}/day</span>
+                                            <button onClick={() => handleHire(group)} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-md shadow-green-50">
+                                                Hire
+                                            </button>
+                                        </div>
                                     </div>
                                 ))
                             )}
+                        </div>
+
+                        {/* Marketplace Big Groups Section */}
+                        <div className="space-y-4 pt-4">
+                            <div className="flex justify-between items-end">
+                                <h2 className="text-xl font-bold text-gray-900">Marketplace Top Groups</h2>
+                                <button onClick={handleFindLabour} className="text-blue-600 text-sm font-semibold hover:underline">Marketplace</button>
+                            </div>
+                            
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+                                {!bigGroups || bigGroups.length === 0 ? (
+                                    <p className="p-8 text-center text-gray-400 italic text-sm">No large groups found yet.</p>
+                                ) : (
+                                    bigGroups.map((group) => (
+                                        <div key={group.id} className="p-4 flex flex-col gap-3 hover:bg-blue-50/30 transition-colors">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-12 w-12 rounded-xl overflow-hidden bg-blue-100 flex items-center justify-center text-blue-700 font-bold shadow-sm">
+                                                        {group.image ? <img src={group.image} alt={group.name} className="h-full w-full object-cover" /> : group.name.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900 text-sm uppercase leading-tight">{group.name}</h4>
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <span className="bg-yellow-100 text-yellow-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase flex items-center gap-0.5">
+                                                                <Star className="h-2 w-2 fill-current" /> {group.rating || '4.8'}
+                                                            </span>
+                                                            <span className="text-[10px] text-gray-400 font-bold uppercase">{group.membersCount || group.members?.length || 0} Workers</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-xs font-black text-green-600">₹{group.rate}/day</p>
+                                                    <p className="text-[8px] text-gray-400 font-bold uppercase">{group.location}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={() => handleHire(group)}
+                                                    className="flex-1 bg-green-600 text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 shadow-md shadow-green-50 transition-all font-bold"
+                                                >
+                                                    Book Now
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleMessages(group)}
+                                                    className="px-3 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-all"
+                                                >
+                                                    <MessageCircle className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
 
                         {/* Promo / Tip Card */}

@@ -60,11 +60,13 @@ const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
 const jobsRoutes = require('./routes/jobs');
 const paymentRoutes = require('./routes/payments');
+const groupRoutes = require('./routes/groups');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/groups', groupRoutes);
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api', apiRoutes);

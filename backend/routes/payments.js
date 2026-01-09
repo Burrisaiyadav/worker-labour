@@ -69,7 +69,54 @@ router.post('/verify', auth, async (req, res) => {
         job.status = 'Completed';
         await job.save();
 
+        // Emit socket events for real-time update
+        const io = req.app.get('io');
+        io.to(payeeId).emit('payment-verified', { job, payment });
+        io.to(req.user.id).emit('payment-verified', { job, payment });
+
+        // Also notify payee
+        const Notification = require('../models/NotificationJSON');
+        const payer = require('../models/UserJSON').findById(req.user.id);
+        const newNotif = new Notification({
+            userId: payeeId,
+            title: 'Payment Received',
+            message: `You have received a payment of ₹${amount} for job: ${job.title}`,
+            type: 'job'
+        });
+        await newNotif.save();
+        io.to(payeeId).emit('new-notification', newNotif);
+
         res.json({ success: true, payment });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   POST api/payments/withdraw
+// @desc    Withdraw balance
+// @access  Private
+router.post('/withdraw', auth, async (req, res) => {
+    try {
+        const payments = await Payment.find();
+        // Calculate current balance
+        const credits = payments.filter(p => p.payeeId === req.user.id && p.status === 'Completed').reduce((sum, p) => sum + p.amount, 0);
+        const debits = payments.filter(p => p.payerId === req.user.id && p.status === 'Completed').reduce((sum, p) => sum + p.amount, 0);
+        const balance = credits - debits;
+
+        if (balance <= 0) return res.status(400).json({ msg: 'Insufficient balance' });
+
+        const withdrawal = new Payment({
+            payerId: req.user.id,
+            payeeId: 'Self',
+            amount: balance,
+            status: 'Completed',
+            type: 'debit',
+            desc: 'Withdrawal to Bank'
+        });
+        await withdrawal.save();
+
+        res.json({ success: true, withdrawal });
     } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');
