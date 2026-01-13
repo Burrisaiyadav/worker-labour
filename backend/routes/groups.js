@@ -31,6 +31,9 @@ router.post('/', auth, async (req, res) => {
             await user.save();
         }
 
+        const io = req.app.get('io');
+        if (io) io.emit('group-updated', newGroup);
+
         res.json(newGroup);
     } catch (err) {
         console.error(err.message);
@@ -151,6 +154,9 @@ router.delete('/:id', auth, async (req, res) => {
 
         await LabourGroup.delete(req.params.id);
 
+        const io = req.app.get('io');
+        if (io) io.emit('group-updated', { id: req.params.id, deleted: true });
+
         res.json({ msg: 'Group deleted' });
     } catch (err) {
         console.error(err.message);
@@ -190,6 +196,9 @@ router.post('/:id/join', auth, async (req, res) => {
             metadata: { groupId: group.id, requesterId: req.user.id }
         });
         await adminNotification.save();
+
+        const io = req.app.get('io');
+        if (io) io.emit('group-updated', group);
 
         res.json({ msg: 'Join request sent' });
     } catch (err) {
@@ -239,6 +248,9 @@ router.post('/:id/approve', auth, async (req, res) => {
             await user.save();
         }
 
+        const io = req.app.get('io');
+        if (io) io.emit('group-updated', group);
+
         res.json({ msg: 'User approved', group });
     } catch (err) {
         console.error(err.message);
@@ -263,6 +275,9 @@ router.post('/:id/reject', auth, async (req, res) => {
         const { userId } = req.body;
         group.joinRequests = group.joinRequests.filter(id => id !== userId);
         await group.save();
+
+        const io = req.app.get('io');
+        if (io) io.emit('group-updated', group);
 
         res.json({ msg: 'Join request rejected' });
     } catch (err) {

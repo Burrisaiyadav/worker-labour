@@ -5,9 +5,29 @@ import { api } from '../utils/api';
 const GroupDetailsModal = ({ group, onClose, onSuccess }) => {
     const [inviteId, setInviteId] = useState('');
     const [loading, setLoading] = useState(false);
-    const [members, setMembers] = useState([]);
+    const [memberDetails, setMemberDetails] = useState({});
+    const [requesterDetails, setRequesterDetails] = useState({});
     const user = JSON.parse(localStorage.getItem('user'));
     const isAdmin = group.adminId === user.id;
+
+    useEffect(() => {
+        const fetchUserData = async (ids, type) => {
+            const details = {};
+            await Promise.all(ids.map(async (id) => {
+                try {
+                    const data = await api.get(`/auth/user/${id}`);
+                    details[id] = data;
+                } catch (err) {
+                    details[id] = { name: 'Unknown User' };
+                }
+            }));
+            if (type === 'members') setMemberDetails(prev => ({ ...prev, ...details }));
+            else setRequesterDetails(prev => ({ ...prev, ...details }));
+        };
+
+        if (group.members) fetchUserData(group.members, 'members');
+        if (group.joinRequests) fetchUserData(group.joinRequests, 'requesters');
+    }, [group.members, group.joinRequests]);
 
     const handleInvite = async (e) => {
         e.preventDefault();
@@ -77,13 +97,18 @@ const GroupDetailsModal = ({ group, onClose, onSuccess }) => {
                                 <Users size={16} className="text-blue-600" /> Members ({group.members?.length || 0})
                             </h3>
                             <div className="space-y-3 max-h-60 overflow-y-auto pr-2 scrollbar-hide">
-                                {group.members?.map((memberId, index) => (
-                                    <div key={memberId} className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                                {group.members?.map((memberId) => (
+                                    <div key={memberId} className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl border border-gray-100 hover:bg-white transition-colors">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 bg-white rounded-xl flex items-center justify-center text-[10px] font-bold text-gray-500 border border-gray-100">
-                                                ID
+                                            <div className="h-8 w-8 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                                                {memberDetails[memberId]?.profileImage ? (
+                                                    <img src={memberDetails[memberId].profileImage} className="h-full w-full object-cover rounded-xl" alt="" />
+                                                ) : <Users size={14} />}
                                             </div>
-                                            <span className="text-xs font-bold text-gray-700">{memberId === user.id ? 'You' : memberId.substring(0, 8)}</span>
+                                            <div>
+                                                <p className="text-xs font-bold text-gray-900">{memberId === user.id ? 'You' : (memberDetails[memberId]?.name || 'Loading...')}</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{memberId === group.adminId ? 'Owner / Admin' : 'Active Member'}</p>
+                                            </div>
                                         </div>
                                         {memberId === group.adminId && <Shield size={14} className="text-amber-500" />}
                                     </div>
@@ -98,18 +123,25 @@ const GroupDetailsModal = ({ group, onClose, onSuccess }) => {
                                 </h3>
                                 <div className="space-y-3">
                                     {group.joinRequests.map(requesterId => (
-                                        <div key={requesterId} className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                                            <p className="text-[10px] font-bold text-amber-800 uppercase mb-2">User ID: {requesterId}</p>
+                                        <div key={requesterId} className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex flex-col gap-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-8 w-8 bg-white rounded-lg flex items-center justify-center font-bold text-amber-600 shadow-sm">
+                                                    {requesterDetails[requesterId]?.name?.charAt(0) || '?'}
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-gray-900">{requesterDetails[requesterId]?.name || 'Loading...'}</p>
+                                                    <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest">{requesterDetails[requesterId]?.location || 'Local Worker'}</p>
+                                                </div>
+                                            </div>
                                             <div className="flex gap-2">
                                                 <button 
                                                     onClick={async () => {
                                                         try {
                                                             await api.post(`/groups/${group.id}/approve`, { userId: requesterId });
-                                                            alert('User approved!');
                                                             onSuccess();
                                                         } catch (err) { alert('Failed to approve'); }
                                                     }}
-                                                    className="flex-1 py-2 bg-green-600 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-green-700"
+                                                    className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-green-700 shadow-sm"
                                                 >
                                                     Approve
                                                 </button>
@@ -117,11 +149,10 @@ const GroupDetailsModal = ({ group, onClose, onSuccess }) => {
                                                     onClick={async () => {
                                                         try {
                                                             await api.post(`/groups/${group.id}/reject`, { userId: requesterId });
-                                                            alert('User rejected');
                                                             onSuccess();
                                                         } catch (err) { alert('Failed to reject'); }
                                                     }}
-                                                    className="flex-1 py-2 bg-white border border-red-500 text-red-600 rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-red-50"
+                                                    className="px-4 py-2.5 bg-white border border-red-200 text-red-600 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-red-50"
                                                 >
                                                     Reject
                                                 </button>

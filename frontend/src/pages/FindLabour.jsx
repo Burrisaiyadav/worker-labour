@@ -81,6 +81,7 @@ const FindLabour = () => {
         try {
             await api.post(`/groups/${group.id}/join`);
             alert(`Join request sent to ${group.name}! The admin will review it.`);
+            setPendingRequests(prev => [...prev, group]);
         } catch (err) {
             console.error(err);
             alert(err.response?.data?.msg || 'Failed to send join request');

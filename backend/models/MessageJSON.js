@@ -18,6 +18,7 @@ class MessageJSON {
         this.senderId = data.senderId;
         this.receiverId = data.receiverId;
         this.content = data.content;
+        this.type = data.type || 'text'; // 'text' or 'audio'
         this.timestamp = data.timestamp || new Date();
         this.read = data.read || false;
     }

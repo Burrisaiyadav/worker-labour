@@ -14,7 +14,8 @@ import {
   PlusCircle,
   QrCode,
   Scan,
-  Phone
+  Phone,
+  Check
 } from 'lucide-react';
 import Messages from './Messages';
 import PostJobModal from '../components/PostJobModal';
@@ -144,6 +145,19 @@ const FarmerDashboard = () => {
     const handleLearnMore = () => {
         alert('Redirecting to Verified Workers information page...');
     };
+
+    const handleUpdateStatus = async (jobId, newStatus) => {
+        try {
+            await api.put(`/jobs/${jobId}/status`, { status: newStatus });
+            alert(`Job marked as ${newStatus}!`);
+            // Refresh
+            const data = await api.get('/dashboard/farmer');
+            setDashboardData(data);
+        } catch (err) {
+            console.error(err);
+            alert('Failed to update job status');
+        }
+    };
     
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -174,6 +188,11 @@ const FarmerDashboard = () => {
                     newSocket.on('new-notification', (notif) => {
                         console.log("New notification received:", notif);
                         alert(`Message: ${notif.title}\n${notif.message}`);
+                        fetchDashboardData();
+                    });
+
+                    newSocket.on('group-updated', (group) => {
+                        console.log('Group Updated:', group);
                         fetchDashboardData();
                     });
 
@@ -368,19 +387,71 @@ const FarmerDashboard = () => {
                                                 </div>
                                             </div>
                                             
-                                             <div className="mt-6 flex gap-3">
-                                                <button onClick={() => handleMessages(job)} className="flex-1 h-12 bg-white border-2 border-green-600 text-green-700 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-green-50 transition-all flex items-center justify-center gap-2">
-                                                    <MessageCircle className="h-5 w-5" /> Chat
-                                                </button>
-                                                {job.assignedToPhone && (
-                                                    <a 
-                                                        href={`tel:${job.assignedToPhone}`}
-                                                        className="flex-1 h-12 bg-green-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-100"
-                                                    >
-                                                        <Phone className="h-4 w-4" /> Call
-                                                    </a>
-                                                )}
-                                            </div>
+                                             {/* Rapido-style Status Stepper */}
+                                             <div className="mt-4 px-2">
+                                                 <div className="flex items-center justify-between mb-2">
+                                                     {['Accepted', 'Arrived', 'Working', 'Completed'].map((step, idx) => (
+                                                         <div key={step} className="flex flex-col items-center flex-1 relative">
+                                                             <div className={`h-2 w-2 rounded-full z-10 ${
+                                                                 (job.status === step || (idx === 0 && job.status === 'In Progress') || (step === 'Completed' && job.status === 'Completed')) ? 'bg-green-600 scale-125' : 
+                                                                 (['Accepted', 'Arrived', 'Working', 'Completed'].indexOf(job.status) > idx ? 'bg-green-600' : 'bg-gray-200')
+                                                             }`} />
+                                                             {idx < 3 && (
+                                                                 <div className={`absolute top-1 left-1/2 w-full h-[2px] -z-0 ${
+                                                                     ['Accepted', 'Arrived', 'Working', 'Completed'].indexOf(job.status) > idx ? 'bg-green-600' : 'bg-gray-100'
+                                                                 }`} />
+                                                             )}
+                                                             <span className="text-[7px] font-black uppercase tracking-tighter mt-1 text-gray-400">{step}</span>
+                                                         </div>
+                                                     ))}
+                                                 </div>
+                                             </div>
+                                             
+                                              <div className="mt-6 flex gap-3">
+                                                 <button onClick={() => handleMessages(job)} className="flex-1 h-12 bg-white border-2 border-green-600 text-green-700 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-green-50 transition-all flex items-center justify-center gap-2">
+                                                     <MessageCircle className="h-5 w-5" /> Chat
+                                                 </button>
+                                                 
+                                                 {job.status === 'In Progress' && (
+                                                     <button 
+                                                         onClick={() => setShowScanQR(true)}
+                                                         className="flex-1 h-12 bg-orange-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-orange-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-100"
+                                                     >
+                                                         <Scan className="h-4 w-4" /> Scan Attendance
+                                                     </button>
+                                                 )}
+                                                 {job.status === 'Arrived' && (
+                                                     <button 
+                                                         onClick={() => handleUpdateStatus(job.id, 'Working')}
+                                                         className="flex-1 h-12 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-100"
+                                                     >
+                                                         Start Work
+                                                     </button>
+                                                 )}
+                                                 {job.status === 'Working' && (
+                                                     <button 
+                                                         onClick={() => handleUpdateStatus(job.id, 'Completed')}
+                                                         className="flex-1 h-12 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-100"
+                                                     >
+                                                         Finish
+                                                     </button>
+                                                 )}
+                                                 
+                                                 {/* Allow Payment in Arrived, Working, or Completed status */}
+                                                 {['Arrived', 'Working', 'Completed'].includes(job.status) && job.paymentStatus !== 'Paid' && (
+                                                     <button 
+                                                         onClick={() => navigate(`/payment/${job.id}`)}
+                                                         className="flex-1 h-12 bg-green-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-100 animate-pulse"
+                                                     >
+                                                         <DollarSign className="h-4 w-4" /> Pay Now
+                                                     </button>
+                                                 )}
+                                                 {job.paymentStatus === 'Paid' && (
+                                                     <div className="flex-1 h-12 bg-gray-100 text-gray-500 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                                                         <Check className="h-4 w-4" /> Paid
+                                                     </div>
+                                                 )}
+                                             </div>
                                         </div>
                                     </div>
                                 </div>
@@ -419,69 +490,28 @@ const FarmerDashboard = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                         <div className="flex flex-col items-end gap-1.5">
-                                            <span className="text-xs font-black text-green-600 tracking-tighter">₹{group.rate || '0'}/day</span>
-                                            <button onClick={() => handleHire(group)} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-md shadow-green-50">
-                                                Hire
-                                            </button>
+                                          <div className="flex flex-col items-end gap-1.5 min-w-[100px]">
+                                            <span className="text-xs font-black text-green-600 tracking-tighter">₹{group.rate || '0'}<span className="text-[8px] text-gray-400 font-bold uppercase ml-0.5">/day</span></span>
+                                            <div className="flex gap-1.5 w-full">
+                                                <button 
+                                                    onClick={() => handleHire(group)} 
+                                                    className="flex-1 bg-green-600 text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-all shadow-md shadow-green-50 active:scale-95"
+                                                >
+                                                    Book
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleMessages(group)}
+                                                    className="px-2.5 bg-white border border-gray-100 text-gray-400 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+                                                >
+                                                    <MessageCircle size={14} />
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))
                             )}
                         </div>
 
-                        {/* Marketplace Big Groups Section */}
-                        <div className="space-y-4 pt-4">
-                            <div className="flex justify-between items-end">
-                                <h2 className="text-xl font-bold text-gray-900">Marketplace Top Groups</h2>
-                                <button onClick={handleFindLabour} className="text-blue-600 text-sm font-semibold hover:underline">Marketplace</button>
-                            </div>
-                            
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
-                                {!bigGroups || bigGroups.length === 0 ? (
-                                    <p className="p-8 text-center text-gray-400 italic text-sm">No large groups found yet.</p>
-                                ) : (
-                                    bigGroups.map((group) => (
-                                        <div key={group.id} className="p-4 flex flex-col gap-3 hover:bg-blue-50/30 transition-colors">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-12 w-12 rounded-xl overflow-hidden bg-blue-100 flex items-center justify-center text-blue-700 font-bold shadow-sm">
-                                                        {group.image ? <img src={group.image} alt={group.name} className="h-full w-full object-cover" /> : group.name.charAt(0)}
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-bold text-gray-900 text-sm uppercase leading-tight">{group.name}</h4>
-                                                        <div className="flex items-center gap-2 mt-0.5">
-                                                            <span className="bg-yellow-100 text-yellow-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase flex items-center gap-0.5">
-                                                                <Star className="h-2 w-2 fill-current" /> {group.rating || '4.8'}
-                                                            </span>
-                                                            <span className="text-[10px] text-gray-400 font-bold uppercase">{group.membersCount || group.members?.length || 0} Workers</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-xs font-black text-green-600">₹{group.rate}/day</p>
-                                                    <p className="text-[8px] text-gray-400 font-bold uppercase">{group.location}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button 
-                                                    onClick={() => handleHire(group)}
-                                                    className="flex-1 bg-green-600 text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-700 shadow-md shadow-green-50 transition-all font-bold"
-                                                >
-                                                    Book Now
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleMessages(group)}
-                                                    className="px-3 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-all"
-                                                >
-                                                    <MessageCircle className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
 
                         {/* Promo / Tip Card */}
                         <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl p-6 text-white text-center relative overflow-hidden">

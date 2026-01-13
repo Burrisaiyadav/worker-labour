@@ -27,6 +27,7 @@ class JobJSON {
         this.status = data.status || 'Active'; // Active, In Progress, Completed
         this.assignedTo = data.assignedTo || null; // Labour ID
         this.paymentStatus = data.paymentStatus || 'Pending'; // Pending, Paid
+        this.paymentRequested = data.paymentRequested || false; // Added
         this.paymentId = data.paymentId || null;
         this.createdAt = data.createdAt || new Date();
     }

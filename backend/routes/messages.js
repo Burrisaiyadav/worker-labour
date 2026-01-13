@@ -28,6 +28,7 @@ router.get('/conversations', auth, async (req, res) => {
                 name: user ? user.name : 'Unknown User',
                 otherId: otherId,
                 lastMsg: lastMsg ? lastMsg.content : '',
+                type: lastMsg ? lastMsg.type : 'text',
                 time: lastMsg ? new Date(lastMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now',
                 unread: userHistory.filter(m => m.receiverId === myUserId && !m.read).length
             };

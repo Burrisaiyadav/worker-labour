@@ -77,6 +77,27 @@ class UserJSON {
 
     async save() {
         const users = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+
+        // If ID is a UUID or missing, generate a short sequenced ID (username-0001)
+        const isUuid = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+
+        if (!this.id || isUuid(this.id)) {
+            const originalId = this.id;
+            const namePrefix = (this.name || 'user').toLowerCase().replace(/\s+/g, '').substring(0, 8);
+            const others = users.filter(u => u.id && u.id.startsWith(`${namePrefix}-`));
+            let maxSeq = 0;
+            others.forEach(u => {
+                const parts = u.id.split('-');
+                const seq = parseInt(parts[parts.length - 1]);
+                if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
+            });
+            this.id = `${namePrefix}-${String(maxSeq + 1).padStart(4, '0')}`;
+
+            // If we replaced a UUID, we should ideally update other collections, 
+            // but for now we primarily care about new users or clean display.
+            console.log(`Migrated/Generated ID: ${originalId || 'new'} -> ${this.id}`);
+        }
+
         const existingIndex = users.findIndex(u => u.id === this.id);
 
         if (existingIndex >= 0) {

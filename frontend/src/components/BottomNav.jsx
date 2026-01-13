@@ -7,14 +7,16 @@ const BottomNav = ({ role }) => {
     
     const farmerLinks = [
         { path: '/dashboard', label: 'Home', icon: Home },
-        { path: '/find-labour', label: 'Find Workers', icon: Search },
-        { path: '/my-jobs', label: 'My Jobs', icon: Briefcase },
+        { path: '/find-labour', label: 'Find', icon: Search },
+        { path: '/messages', label: 'Chat', icon: MessageCircle },
+        { path: '/my-jobs', label: 'Jobs', icon: Briefcase },
         { path: '/farmer/profile', label: 'Profile', icon: User },
     ];
 
     const labourLinks = [
         { path: '/labour/dashboard', label: 'Home', icon: Home },
-        { path: '/labour/active-jobs', label: 'Active Jobs', icon: Briefcase },
+        { path: '/labour/active-jobs', label: 'Jobs', icon: Briefcase },
+        { path: '/messages', label: 'Chat', icon: MessageCircle },
         { path: '/labour/history', label: 'History', icon: Heart },
         { path: '/labour/profile', label: 'Profile', icon: User },
     ];

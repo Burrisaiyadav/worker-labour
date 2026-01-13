@@ -50,6 +50,11 @@ class LabourGroupJSON {
         const groups = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
         const existingIndex = groups.findIndex(g => g.id === this.id);
 
+        // Ensure membersCount is always current before saving
+        if (Array.isArray(this.members)) {
+            this.membersCount = this.members.length;
+        }
+
         if (existingIndex >= 0) {
             groups[existingIndex] = { ...this };
         } else {

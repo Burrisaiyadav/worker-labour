@@ -170,6 +170,30 @@ router.get('/user', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/auth/user/:id
+// @desc    Get user data by ID
+// @access  Private
+router.get('/user/:id', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        // Return only public info
+        res.json({
+            id: user.id,
+            name: user.name,
+            location: user.location,
+            role: user.role,
+            mobile: user.mobile,
+            accountType: user.accountType,
+            profileImage: user.profileImage
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
 // @route   PUT /api/auth/profile
 // @desc    Update user profile
 // @access  Private

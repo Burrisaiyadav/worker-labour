@@ -26,6 +26,7 @@ const LabourDashboard = () => {
     const [showCreateGroup, setShowCreateGroup] = useState(false);
     const [showJoinGroup, setShowJoinGroup] = useState(false);
     const [showGroupDetails, setShowGroupDetails] = useState(null);
+    const [showPaymentQR, setShowPaymentQR] = useState(null); // stores job object
     const navigate = useNavigate();
 
     // Mock User from local storage for display
@@ -133,48 +134,24 @@ const LabourDashboard = () => {
         }
     };
 
-    const handlePayment = async (job) => {
+    const handleRequestPayment = async (job) => {
         try {
             setIsPaying(true);
-            const order = await api.post('/payments/order', {
-                jobId: job.id,
-                amount: job.wage || job.cost
-            });
-
-            const options = {
-                key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_mock_id",
-                amount: order.amount,
-                currency: "INR",
-                name: "Farm Hand",
-                description: `Payment for ${job.type || job.title}`,
-                order_id: order.id,
-                handler: async (response) => {
-                    const result = await api.post('/payments/verify', {
-                        ...response,
-                        jobId: job.id,
-                        payeeId: user.id,
-                        amount: job.wage || job.cost
-                    });
-                    if (result.success) {
-                        alert("Payment successful!");
-                        // Refresh data
-                        window.location.reload();
-                    }
-                },
-                prefill: {
-                    name: user.name,
-                    contact: user.phone || ""
-                },
-                theme: {
-                    color: "#16a34a"
-                }
-            };
-
-            const rzp = new window.Razorpay(options);
-            rzp.open();
+            await api.post(`/jobs/${job.id}/request-payment`);
+            alert("Payment request sent to farmer!");
+            // Refresh local data
+            const activeData = await api.get('/jobs/labour/active');
+            if (activeData) {
+                setActiveJobs(activeData.map(j => ({
+                    ...j,
+                    type: j?.title || j?.type,
+                    farmer: j?.farmerName || 'Farmer',
+                    wage: j?.cost
+                })));
+            }
         } catch (err) {
-            console.error("Payment failed", err);
-            alert("Payment initiation failed");
+            console.error("Failed to request payment", err);
+            alert("Failed to send payment request");
         } finally {
             setIsPaying(false);
         }
@@ -450,11 +427,19 @@ const LabourDashboard = () => {
                                                 </button>
                                                 {job.status === 'In Progress' && (
                                                     <button 
-                                                        onClick={() => handlePayment(job)}
-                                                        disabled={isPaying}
-                                                        className="flex-1 py-1.5 bg-green-600 text-white rounded-lg text-[10px] font-bold hover:bg-green-700 transition-colors disabled:opacity-50"
+                                                        onClick={() => handleRequestPayment(job)}
+                                                        disabled={isPaying || job.paymentRequested}
+                                                        className="flex-1 py-1.5 bg-green-600 text-white rounded-lg text-[10px] font-bold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:bg-gray-400"
                                                     >
-                                                        Collect Payment
+                                                        {job.paymentRequested ? 'Requested' : 'Request Payment'}
+                                                    </button>
+                                                )}
+                                                {job.paymentRequested && (
+                                                    <button 
+                                                        onClick={() => setShowPaymentQR(job)}
+                                                        className="flex-1 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+                                                    >
+                                                        <QrCode size={12} /> Pay QR
                                                     </button>
                                                 )}
                                                 <button 
@@ -574,6 +559,13 @@ const LabourDashboard = () => {
                     }}
                 />
             )}
+
+            {showPaymentQR && (
+                <PaymentQRModal 
+                    job={showPaymentQR}
+                    onClose={() => setShowPaymentQR(null)}
+                />
+            )}
         </div>
     );
 };
@@ -610,6 +602,62 @@ const QRModal = ({ userId, onClose }) => {
 
                     <button onClick={onClose} className="w-full bg-green-600 text-white font-bold py-4 rounded-2xl hover:bg-green-700 transition-all shadow-lg shadow-green-100 uppercase tracking-wide">
                         Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Payment QR Modal Component
+const PaymentQRModal = ({ job, onClose }) => {
+    // Simulated unified payment link (UPI string format)
+    const upiLink = `upi://pay?pa=farmhand@bank&pn=FarmHand&am=${job.wage || job.cost}&tn=Job_${job.id}`;
+    
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200 text-sans">
+                <div className="p-6 text-center">
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="text-left">
+                            <h3 className="text-xl font-black text-gray-900 font-sans tracking-tight">PAYMENT QR</h3>
+                            <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest">Integrated Gateway</p>
+                        </div>
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                            <X className="h-6 w-6 text-gray-500" />
+                        </button>
+                    </div>
+                    
+                    <div className="bg-white p-4 rounded-2xl border-2 border-blue-50 mb-6 mx-auto w-fit shadow-inner relative group">
+                        <img 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiLink)}`} 
+                            alt="Payment QR Code"
+                            className="w-56 h-56"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/10 backdrop-blur-[2px]">
+                             <DollarSign className="h-10 w-10 text-blue-600 animate-bounce" />
+                        </div>
+                    </div>
+                    
+                    <div className="mb-6">
+                        <p className="text-3xl font-black text-gray-900 tracking-tighter">₹{(job.wage || job.cost).toLocaleString()}</p>
+                        <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1">Amount to be received</p>
+                    </div>
+                    
+                    <div className="flex items-center justify-center gap-4 mb-8">
+                        <div className="flex flex-col items-center gap-1 opacity-80">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" className="h-4" alt="UPI" />
+                        </div>
+                        <div className="h-4 w-[1px] bg-gray-200"></div>
+                        <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Razorpay Integrated</div>
+                    </div>
+
+                    <p className="text-[10px] text-gray-500 mb-6 leading-relaxed font-black uppercase tracking-tighter opacity-70">
+                        Farmer can scan this QR with any UPI app<br/>(PhonePe, Google Pay, Paytm) to pay.
+                    </p>
+                    
+                    <button onClick={onClose} className="w-full h-14 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 uppercase tracking-widest active:scale-95">
+                        DONE
                     </button>
                 </div>
             </div>

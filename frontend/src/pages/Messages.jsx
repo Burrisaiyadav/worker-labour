@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, ChevronLeft, MoreVertical, Phone, CreditCard, CheckCircle2 } from 'lucide-react';
+import { Send, ChevronLeft, MoreVertical, Phone, CreditCard, CheckCircle2, Mic, Square, Play, Pause, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { io } from 'socket.io-client';
@@ -14,6 +14,10 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [socket, setSocket] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const timerRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -33,7 +37,7 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
   // --- E2EE Helpers ---
   const getSecretKey = async (otherId) => {
     const ids = [currentUser.id, otherId].sort();
-    const sharedSecret = ids.join('_'); // Simple shared secret for demo E2EE
+    const sharedSecret = ids.join('_');
     const enc = new TextEncoder();
     const keyMaterial = await window.crypto.subtle.importKey(
       'raw', enc.encode(sharedSecret), 'PBKDF2', false, ['deriveKey']
@@ -60,13 +64,12 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
       combined.set(new Uint8Array(encrypted), iv.length);
       return btoa(String.fromCharCode(...combined));
     } catch (err) {
-      console.error("Encryption failed", err);
       return text;
     }
   };
 
   const decryptMessage = async (data, otherId) => {
-    if (!data || typeof data !== 'string' || !data.includes('==') && data.length < 24) return data;
+    if (!data || typeof data !== 'string' || (data.length < 24 && !data.includes('=='))) return data;
     try {
       const key = await getSecretKey(otherId);
       const combined = new Uint8Array(atob(data).split('').map(c => c.charCodeAt(0)));
@@ -77,28 +80,22 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
       );
       return new TextDecoder().decode(decrypted);
     } catch (err) {
-      // If decryption fails, it might be an unencrypted legacy message
       return data;
     }
   };
-  // --- End E2EE ---
 
-  // Initialize socket and fetch chat list
   useEffect(() => {
     const newSocket = io('http://localhost:5000');
     newSocket.emit('join', currentUser.id);
 
     newSocket.on('receive-message', async (msg) => {
-        // 1. Decrypt if possible
-        const decryptedContent = await decryptMessage(msg.content, msg.senderId === currentUser.id ? msg.receiverId : msg.senderId);
+        const decryptedContent = msg.type === 'text' ? await decryptMessage(msg.content, msg.senderId === currentUser.id ? msg.receiverId : msg.senderId) : msg.content;
         const processedMsg = { ...msg, content: decryptedContent };
 
-        // 2. Update active chat messages
         if (activeChat && (msg.senderId === activeChat.otherId || msg.receiverId === activeChat.otherId)) {
             setMessages(prev => [...prev, processedMsg]);
         }
         
-        // 3. Update chat list (last msg/unread)
         setChats(prevChats => {
             const chatExists = prevChats.some(c => c.otherId === msg.senderId || c.otherId === msg.receiverId);
             if (chatExists) {
@@ -106,7 +103,7 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
                     if (c.otherId === msg.senderId || c.otherId === msg.receiverId) {
                         return {
                             ...c,
-                            lastMsg: decryptedContent,
+                            lastMsg: msg.type === 'audio' ? '🎤 Voice message' : decryptedContent,
                             time: 'Now',
                             unread: (activeChat?.otherId === msg.senderId) ? c.unread : (c.unread || 0) + 1
                         };
@@ -118,7 +115,7 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
                     id: Date.now().toString(),
                     name: msg.senderName || 'New User',
                     otherId: msg.senderId === currentUser.id ? msg.receiverId : msg.senderId,
-                    lastMsg: decryptedContent,
+                    lastMsg: msg.type === 'audio' ? '🎤 Voice message' : decryptedContent,
                     time: 'Now',
                     unread: 1
                 }, ...prevChats];
@@ -127,14 +124,12 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
     });
 
     setSocket(newSocket);
-
     const fetchConversations = async () => {
         try {
             const data = await api.get('/messages/conversations');
-            // Decrypt last messages
             const decryptedChats = await Promise.all(data.map(async chat => ({
                 ...chat,
-                lastMsg: await decryptMessage(chat.lastMsg, chat.otherId)
+                lastMsg: chat.type === 'audio' ? '🎤 Voice message' : await decryptMessage(chat.lastMsg, chat.otherId)
             })));
             setChats(decryptedChats);
         } catch (err) {
@@ -142,47 +137,29 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
         }
     };
     fetchConversations();
-
     return () => newSocket.disconnect();
-  }, [currentUser.id]); // Removed activeChat dependency to avoid re-connecting.
+  }, [currentUser.id, activeChat?.otherId]);
 
   useEffect(() => {
-    if (initialGroupName) {
+    if (initialGroupName && chats.length > 0) {
         const chat = chats.find(c => c.name === initialGroupName);
-        if (chat) {
-            setActiveChat(chat);
-        } else if (initialOtherId) {
-            setActiveChat({ 
-                name: initialGroupName, 
-                otherId: initialOtherId, 
-                lastMsg: '', 
-                time: 'Now' 
-            });
-        } else if (job && job.userId) {
-            setActiveChat({ 
-                name: initialGroupName, 
-                otherId: job.userId, 
-                lastMsg: '', 
-                time: 'Now' 
-            });
-        }
+        if (chat) setActiveChat(chat);
+        else if (initialOtherId) setActiveChat({ name: initialGroupName, otherId: initialOtherId, lastMsg: '', time: 'Now' });
     }
-  }, [initialGroupName, initialOtherId, chats, job]);
+  }, [initialGroupName, initialOtherId, chats]);
 
   useEffect(() => {
     if (activeChat) {
-        // Fetch real history
         api.get(`/messages/${activeChat.otherId}`).then(async data => {
             const decryptedMessages = await Promise.all(data.map(async m => ({
                 ...m,
-                content: await decryptMessage(m.content, activeChat.otherId)
+                content: m.type === 'text' ? await decryptMessage(m.content, activeChat.otherId) : m.content
             })));
             setMessages(decryptedMessages);
-        }).catch(err => console.error("Failed to fetch messages", err));
+        });
     }
   }, [activeChat]);
 
-  // Auto scroll to bottom
   useEffect(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -193,180 +170,175 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
         api.get(`/jobs/${jobId}`).then(data => {
             setJob(data);
             setLoadingJob(false);
-        }).catch(err => {
-            console.error("Failed to fetch job context", err);
-            setLoadingJob(false);
-        });
+        }).catch(() => setLoadingJob(false));
     }
   }, [jobId]);
   
   const handleBack = () => {
-      if (activeChat) {
-          setActiveChat(null);
-      } else if (onClose) {
-          onClose();
+    if (activeChat) {
+      setActiveChat(null);
+    } else {
+      if (onClose) {
+        onClose();
       } else {
-          navigate('/dashboard');
+        navigate(-1); // Use navigate(-1) for better back behavior
       }
+    }
   };
 
-  const handlePayNow = () => {
-      onClose();
-      navigate(`/payment/${jobId}`);
-  };
+  const handleSendMessage = async (e, type = 'text', customContent = null) => {
+      if (e) e.preventDefault();
+      const content = customContent || newMessage;
+      if (!content.trim() || !activeChat || !socket) return;
 
-  const handleSendMessage = async (e) => {
-      e.preventDefault();
-      if (!newMessage.trim() || !activeChat || !socket) return;
-
-      const encryptedContent = await encryptMessage(newMessage, activeChat.otherId);
-
+      const finalContent = type === 'text' ? await encryptMessage(content, activeChat.otherId) : content;
       const msgData = {
           senderId: currentUser.id,
           receiverId: activeChat.otherId,
-          content: encryptedContent
+          content: finalContent,
+          type
       };
 
       socket.emit('send-message', msgData);
-      setNewMessage('');
+      if (!customContent) setNewMessage('');
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      const chunks = [];
+      mediaRecorderRef.current.ondataavailable = (e) => chunks.push(e.data);
+      mediaRecorderRef.current.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => handleSendMessage(null, 'audio', reader.result);
+        stream.getTracks().forEach(track => track.stop());
+      };
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
+    } catch (err) {
+      alert("Microphone access denied");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      clearInterval(timerRef.current);
+    }
   };
 
   const handleClearChat = async () => {
       if (!activeChat) return;
-      if (window.confirm('Are you sure you want to clear this chat? This cannot be undone.')) {
+      if (window.confirm('Clear this chat?')) {
         try {
             await api.delete(`/messages/${activeChat.otherId}`);
             setMessages([]);
             setShowSettings(false);
-            // Refresh conversations list
             const data = await api.get('/messages/conversations');
             setChats(data);
-        } catch (err) {
-            console.error("Failed to clear chat", err);
-        }
+        } catch (err) {}
       }
   };
 
   const handleCall = () => {
-      if (!activeChat || !activeChat.otherId) return;
-      // Fetch phone number from profile if not in chat object
-      api.get(`/auth/labourers`).then(labs => {
-          const lab = labs.find(l => l.id === activeChat.otherId);
-          if (lab && lab.mobile) {
-              window.location.href = `tel:${lab.mobile}`;
-          } else {
-              // Try farmers
-              api.get(`/auth/farmers`).then(farmers => {
-                  const farmer = farmers.find(f => f.id === activeChat.otherId);
-                  if (farmer && farmer.mobile) {
-                      window.location.href = `tel:${farmer.mobile}`;
-                  } else {
-                      alert("Phone number not available");
-                  }
-              });
-          }
+      if (!activeChat) return;
+      api.get(`/auth/user/${activeChat.otherId}`).then(user => {
+          if (user.mobile) window.location.href = `tel:${user.mobile}`;
+          else alert("Phone number not available");
+      }).catch(() => {
+          // Fallback to legacy routes if /user/:id fails
+          api.get(`/auth/labourers`).then(labs => {
+              const lab = labs.find(l => l.id === activeChat.otherId);
+              if (lab && lab.mobile) window.location.href = `tel:${lab.mobile}`;
+              else alert("Phone number not available");
+          });
       });
   };
 
   return (
     <div className={`bg-gray-50 flex flex-col ${onClose ? 'h-full rounded-2xl overflow-hidden' : 'min-h-screen'}`}>
-       {/* Header */}
-       <div className="bg-white shadow-xl shadow-gray-100/50 p-4 md:p-6 flex items-center justify-between sticky top-0 z-10 border-b border-gray-100">
-            <div className="flex items-center gap-2 md:gap-4">
-                <button onClick={handleBack} className="h-10 w-10 md:h-12 md:w-12 bg-gray-50 flex items-center justify-center rounded-xl md:rounded-2xl hover:bg-gray-100 transition-all text-gray-900">
-                    <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
+        <div className="bg-white p-3 md:p-4 flex items-center justify-between sticky top-0 z-10 border-b border-gray-100">
+            <div className="flex items-center gap-2 md:gap-3">
+                <button onClick={handleBack} className="h-9 w-9 md:h-10 md:w-10 bg-gray-50 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-all text-gray-900 border border-gray-100">
+                    <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
                 </button>
                 {activeChat ? (
-                    <div className="flex items-center gap-2 md:gap-3">
-                        <div className="h-10 w-10 md:h-12 md:w-12 bg-green-100 rounded-xl md:rounded-2xl flex items-center justify-center text-green-700 font-black text-lg md:text-xl border-2 border-white shadow-sm">
+                    <div className="flex items-center gap-2 md:gap-2.5">
+                        <div className="h-9 w-9 md:h-10 md:w-10 bg-green-100 rounded-xl flex items-center justify-center text-green-700 font-black text-base border border-white shadow-sm">
                             {activeChat.name.charAt(0)}
                         </div>
                         <div>
-                            <h1 className="text-base md:text-lg font-bold text-gray-900 leading-tight truncate max-w-[120px] md:max-w-[200px] uppercase text-left">{activeChat.name}</h1>
+                            <h1 className="text-sm md:text-base font-bold text-gray-900 leading-tight truncate max-w-[100px] md:max-w-[150px] uppercase text-left">{activeChat.name}</h1>
                             <div className="flex items-center gap-1">
-                                <span className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                                <p className="text-[8px] md:text-[9px] lg:text-[10px] text-green-600 font-black uppercase tracking-widest">Active Now</p>
+                                <span className="h-1 w-1 bg-green-500 rounded-full"></span>
+                                <p className="text-[7px] md:text-[8px] text-green-600 font-black uppercase tracking-widest">Online</p>
                             </div>
                         </div>
                     </div>
                 ) : (
                     <div>
-                        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 uppercase">Messages</h1>
-                        <p className="text-[8px] md:text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Your encrypted chats</p>
+                        <h1 className="text-lg md:text-xl font-bold text-gray-900 uppercase">Messages</h1>
+                        <p className="text-[7px] md:text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Safe & Secure</p>
                     </div>
                 )}
             </div>
 
-            <div className="flex items-center gap-3 relative">
+            <div className="flex items-center gap-2 relative">
                 {activeChat && isFarmer && job && job.status === 'Completed' && job.paymentStatus === 'Pending' && (
-                    <button 
-                        onClick={handlePayNow}
-                        className="h-12 px-6 bg-green-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-100 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
-                    >
-                        <CreditCard size={14} /> Pay ₹{job.cost}
+                    <button onClick={() => navigate(`/payment/${jobId}`)} className="h-9 px-4 bg-green-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg">
+                        Pay ₹{job.cost}
                     </button>
                 )}
-                
                 {activeChat && (
                     <>
-                        <button onClick={handleCall} className="h-12 w-12 bg-green-50 flex items-center justify-center rounded-2xl text-green-600 hover:bg-green-100 transition-all">
-                            <Phone className="h-5 w-5" />
+                        <button onClick={handleCall} className="h-9 w-9 bg-green-50 flex items-center justify-center rounded-xl text-green-600 hover:bg-green-100 border border-green-100 transition-all">
+                            <Phone className="h-4 w-4" />
                         </button>
-                        <button onClick={() => setShowSettings(!showSettings)} className="h-12 w-12 bg-gray-50 flex items-center justify-center rounded-2xl text-gray-400 hover:text-gray-900 transition-all">
-                            <MoreVertical className="h-5 w-5" />
+                        <button onClick={() => setShowSettings(!showSettings)} className="h-9 w-9 bg-gray-50 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-900 border border-gray-100 transition-all">
+                            <MoreVertical className="h-4 w-4" />
                         </button>
                     </>
                 )}
-
-                {/* Settings Dropdown */}
                 {showSettings && (
-                    <div className="absolute top-14 right-0 bg-white rounded-2xl shadow-2xl shadow-gray-200 border border-gray-100 w-56 overflow-hidden z-20 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <button onClick={() => setShowSettings(false)} className="w-full text-left px-6 py-4 hover:bg-gray-50 text-[10px] font-black uppercase tracking-widest text-gray-700 transition-colors">
-                            View Profile
-                        </button>
-                        <button onClick={handleClearChat} className="w-full text-left px-6 py-4 hover:bg-red-50 text-[10px] font-black uppercase tracking-widest text-red-600 transition-colors border-t border-gray-50">
+                    <div className="absolute top-11 right-0 bg-white rounded-xl shadow-2xl border border-gray-100 w-44 overflow-hidden z-20 animate-in fade-in slide-in-from-top-2">
+                        <button onClick={handleClearChat} className="w-full text-left px-4 py-3 hover:bg-red-50 text-[9px] font-black uppercase tracking-widest text-red-600 transition-colors">
                             Clear Chat
                         </button>
                     </div>
                 )}
             </div>
-       </div>
+        </div>
 
-       {/* Banner for completed & paid */}
-       {activeChat && job && job.paymentStatus === 'Paid' && (
-           <div className="bg-blue-50 px-4 py-2 border-b border-blue-100 flex items-center justify-center gap-2 text-[10px] font-black text-blue-700 uppercase tracking-widest">
-               <CheckCircle2 size={12} /> Payment Completed (ID: {job.paymentId || 'PAY-723...'})
-           </div>
-       )}
-
-       {/* Content */}
-       <div className="flex-1 overflow-y-auto bg-[#efeae2] bg-opacity-40">
+        <div className="flex-1 overflow-y-auto bg-[#efeae2] bg-opacity-40">
             {!activeChat ? (
-                // Chat List
                 <div className="divide-y divide-gray-100 bg-white">
                     {chats.length === 0 ? (
-                        <div className="p-16 md:p-24 text-center">
-                            <div className="h-20 w-20 md:h-24 md:w-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-5 md:mb-6">
-                                <Send className="h-8 w-8 md:h-10 md:w-10 text-gray-200" />
-                            </div>
-                            <h3 className="text-xl md:text-2xl font-bold text-gray-900 uppercase">No Activity</h3>
-                            <p className="text-gray-400 font-bold max-w-sm mx-auto mt-3 md:mt-4 text-[9px] md:text-[10px] lg:text-sm uppercase tracking-widest leading-relaxed">Start a conversation to discuss job details, timing, and payments.</p>
+                        <div className="p-12 text-center">
+                            <Send className="h-10 w-10 text-gray-200 mx-auto mb-4" />
+                            <h3 className="text-lg font-bold text-gray-900 uppercase">No Activity</h3>
+                            <p className="text-gray-400 font-bold text-[9px] uppercase tracking-widest mt-2 px-8">Start a conversation to discuss job details.</p>
                         </div>
                     ) : (
                         chats.map(chat => (
-                            <div key={chat.id} onClick={() => setActiveChat(chat)} className="p-6 md:p-8 flex items-center gap-4 md:gap-6 hover:bg-gray-50 cursor-pointer transition-all hover:pl-10 border-l-4 border-transparent hover:border-green-500">
-                                <div className="h-14 w-14 md:h-16 md:w-16 bg-gradient-to-br from-green-50 to-green-100 rounded-xl md:rounded-2xl flex items-center justify-center text-green-700 font-black text-xl md:text-2xl border-2 border-white shadow-md">
+                            <div key={chat.id} onClick={() => setActiveChat(chat)} className="p-4 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-all border-l-4 border-transparent hover:border-green-500">
+                                <div className="h-11 w-11 bg-gradient-to-br from-green-50 to-green-100 rounded-xl flex items-center justify-center text-green-700 font-black text-lg border border-white shadow-sm">
                                     {chat.name.charAt(0)}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start mb-0.5 md:mb-1">
-                                        <h3 className="font-bold text-gray-900 text-base md:text-lg uppercase">{chat.name}</h3>
-                                        <span className="text-[8px] md:text-[10px] font-black text-gray-400">{chat.time}</span>
+                                    <div className="flex justify-between items-start mb-0.5">
+                                        <h3 className="font-bold text-gray-900 text-sm uppercase">{chat.name}</h3>
+                                        <span className="text-[7px] font-black text-gray-400">{chat.time}</span>
                                     </div>
-                                    <p className="text-[10px] md:text-sm font-bold text-gray-500 truncate">{chat.lastMsg}</p>
+                                    <p className="text-[9px] font-bold text-gray-500 truncate">{chat.lastMsg}</p>
                                 </div>
                                 {chat.unread > 0 && (
-                                    <div className="h-5 w-5 md:h-6 md:w-6 bg-green-600 rounded-full flex items-center justify-center text-[8px] md:text-[10px] font-black text-white shadow-lg shadow-green-100">
+                                    <div className="h-4 w-4 bg-green-600 rounded-full flex items-center justify-center text-[7px] font-black text-white">
                                         {chat.unread}
                                     </div>
                                 )}
@@ -375,23 +347,29 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
                     )}
                 </div>
             ) : (
-                <div className="p-4 md:p-8 space-y-4 md:space-y-6">
-                    <div className="flex justify-center mb-6 md:mb-8">
-                        <span className="bg-white/90 backdrop-blur-md shadow-xl shadow-gray-200/50 text-[8px] md:text-[10px] font-black text-gray-400 px-4 md:px-6 py-1.5 md:py-2 rounded-full uppercase tracking-widest border border-white">End-to-End Encrypted</span>
+                <div className="p-4 space-y-4">
+                    <div className="flex justify-center mb-4">
+                        <span className="bg-white/90 backdrop-blur-md shadow-sm text-[8px] font-black text-gray-400 px-4 py-1.5 rounded-full uppercase tracking-widest border border-white">End-to-End Encrypted</span>
                     </div>
-
                     {messages.map((msg, i) => (
                         <div key={msg.id || i} className={`flex ${msg.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}>
                             <div className={`
-                                relative px-6 md:px-8 py-4 md:py-5 max-w-[85%] md:max-w-[80%] shadow-xl transition-all duration-300
+                                relative px-4 py-3 max-w-[85%] shadow-sm transition-all duration-300
                                 ${msg.senderId === currentUser.id 
-                                    ? 'bg-green-600 text-white rounded-2xl md:rounded-[2.5rem] rounded-tr-none shadow-green-100' 
-                                    : 'bg-white text-gray-800 rounded-2xl md:rounded-[2.5rem] rounded-tl-none border border-gray-100 shadow-gray-100'}
+                                    ? 'bg-green-600 text-white rounded-2xl rounded-tr-none' 
+                                    : 'bg-white text-gray-800 rounded-2xl rounded-tl-none border border-gray-100'}
                             `}>
-                                <p className="text-[12px] md:text-sm font-black leading-relaxed">{msg.content}</p>
-                                <div className={`text-[8px] md:text-[9px] font-black mt-2 md:mt-3 flex items-center gap-1.5 md:gap-2 ${msg.senderId === currentUser.id ? 'text-green-200 justify-end' : 'text-gray-400 justify-start'}`}>
+                                {msg.type === 'audio' ? (
+                                    <VoiceMessage 
+                                        src={msg.content} 
+                                        isOwn={msg.senderId === currentUser.id} 
+                                    />
+                                ) : (
+                                    <p className="text-xs font-bold leading-relaxed">{msg.content}</p>
+                                )}
+                                <div className={`text-[6px] font-black mt-1 flex items-center gap-1 ${msg.senderId === currentUser.id ? 'text-green-200 justify-end' : 'text-gray-400 justify-start'}`}>
                                     {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                                    {msg.senderId === currentUser.id && <CheckCircle2 size={10} md:size={12} className="fill-current" />}
+                                    {msg.senderId === currentUser.id && <CheckCircle2 size={8} className="fill-current" />}
                                 </div>
                             </div>
                         </div>
@@ -399,27 +377,104 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
                     <div ref={messagesEndRef} />
                 </div>
             )}
-       </div>
+        </div>
 
-       {/* Input Area (only if chat active) */}
-       {activeChat && (
-           <form onSubmit={handleSendMessage} className="bg-white p-4 md:p-8 border-t border-gray-100 sticky bottom-0">
-               <div className="flex items-center gap-3 md:gap-4 bg-gray-50 rounded-2xl md:rounded-[2.5rem] px-4 md:px-6 py-1 md:py-2 border-2 border-gray-100 focus-within:border-green-500 transition-all shadow-xl shadow-gray-100/50">
-                   <input 
-                        type="text" 
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type here..." 
-                        className="flex-1 bg-transparent border-none px-2 py-4 md:py-5 focus:outline-none text-xs md:text-sm font-black text-gray-700"
-                   />
-                   <button type="submit" className="h-10 w-10 md:h-14 md:w-14 bg-green-600 rounded-lg md:rounded-3xl text-white flex items-center justify-center hover:bg-green-700 shadow-xl shadow-green-100 transition-all hover:scale-110 active:scale-90 group flex-shrink-0">
-                       <Send className="h-5 w-5 md:h-6 md:w-6 group-hover:rotate-12 transition-transform" />
-                   </button>
-               </div>
-           </form>
-       )}
+        {activeChat && (
+            <div className="bg-white p-2 pb-5 md:pb-3 border-t border-gray-100 sticky bottom-0">
+                <div className="flex items-center gap-2 px-2">
+                    {isRecording ? (
+                        <div className="flex-1 flex items-center justify-between bg-red-50 rounded-2xl px-4 py-3 border border-red-100 animate-pulse">
+                            <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 bg-red-500 rounded-full animate-ping"></div>
+                                <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Recording {recordingTime}s</span>
+                            </div>
+                            <span className="text-[8px] font-bold text-red-400 uppercase">Release to Send</span>
+                        </div>
+                    ) : (
+                        <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-2xl px-3 py-1 border border-gray-100 focus-within:border-green-500 transition-all">
+                            <input 
+                                 type="text" 
+                                 value={newMessage}
+                                 onChange={(e) => setNewMessage(e.target.value)}
+                                 placeholder="Type a message..." 
+                                 className="flex-1 bg-transparent border-none py-3 focus:outline-none text-xs font-bold text-gray-700"
+                            />
+                        </div>
+                    )}
+                    
+                    <div className="flex gap-2">
+                        {isRecording ? (
+                            <button 
+                                onClick={stopRecording} 
+                                className="h-12 w-12 bg-red-600 rounded-full text-white flex items-center justify-center shadow-lg shadow-red-100"
+                            >
+                                <Square size={20} fill="white" />
+                            </button>
+                        ) : (
+                            <>
+                                <button 
+                                    onClick={startRecording}
+                                    className="h-12 w-12 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center border border-gray-200 active:bg-green-100 active:text-green-600 transition-all"
+                                >
+                                    <Mic size={20} />
+                                </button>
+                                {newMessage.trim() && (
+                                    <button 
+                                        onClick={(e) => handleSendMessage(e)}
+                                        className="h-12 w-12 bg-green-600 rounded-full text-white flex items-center justify-center shadow-lg active:scale-95"
+                                    >
+                                        <Send size={20} />
+                                    </button>
+                                )}
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   );
+};
+
+const VoiceMessage = ({ src, isOwn }) => {
+    const [playing, setPlaying] = useState(false);
+    const audioRef = useRef(null);
+
+    const togglePlay = () => {
+        if (audioRef.current) {
+            if (playing) {
+                audioRef.current.pause();
+            } else {
+                audioRef.current.play();
+            }
+            setPlaying(!playing);
+        }
+    };
+
+    return (
+        <div className="flex items-center gap-3 min-w-[140px]">
+            <button 
+                onClick={togglePlay}
+                className={`h-8 w-8 rounded-full flex items-center justify-center transition-all active:scale-90 ${isOwn ? 'bg-white text-green-600' : 'bg-green-600 text-white'}`}
+            >
+                {playing ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+            </button>
+            <div className="flex-1">
+                <div className={`h-1 rounded-full w-full ${isOwn ? 'bg-green-200' : 'bg-gray-100'}`}>
+                    <div className={`h-1 rounded-full ${playing ? 'w-full animate-pulse' : 'w-1/3'} transition-all duration-500 ${isOwn ? 'bg-white' : 'bg-green-600'}`}></div>
+                </div>
+                <p className={`text-[7px] font-black mt-1 uppercase ${isOwn ? 'text-green-200' : 'text-gray-400'}`}>
+                    {playing ? 'Playing...' : 'Voice Message'}
+                </p>
+            </div>
+            <audio 
+                ref={audioRef}
+                className="hidden" 
+                src={src} 
+                onEnded={() => setPlaying(false)}
+            />
+        </div>
+    );
 };
 
 export default Messages;

@@ -154,9 +154,9 @@
     "name": "Sai Grp",
     "rating": 0,
     "members": [
-      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+      "loki-0001"
     ],
-    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "adminId": "loki-0001",
     "pendingInvites": [],
     "rate": "500",
     "contact": "6301910135",
@@ -168,9 +168,9 @@
     "name": "Sai grp",
     "rating": 0,
     "members": [
-      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+      "loki-0001"
     ],
-    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "adminId": "loki-0001",
     "pendingInvites": [],
     "rate": "5000",
     "contact": "6301910135",
@@ -182,9 +182,9 @@
     "name": "Sai grp",
     "rating": 0,
     "members": [
-      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+      "loki-0001"
     ],
-    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "adminId": "loki-0001",
     "pendingInvites": [],
     "rate": "1000",
     "contact": "6301910135",
@@ -196,9 +196,9 @@
     "name": "sai",
     "rating": 0,
     "members": [
-      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+      "loki-0001"
     ],
-    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "adminId": "loki-0001",
     "pendingInvites": [],
     "rate": "100",
     "contact": "255252145",
@@ -210,9 +210,9 @@
     "name": "valley",
     "rating": 0,
     "members": [
-      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+      "loki-0001"
     ],
-    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "adminId": "loki-0001",
     "pendingInvites": [],
     "rate": "450",
     "contact": "8520963074",
@@ -224,9 +224,9 @@
     "name": "valley work",
     "rating": 0,
     "members": [
-      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+      "loki-0001"
     ],
-    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "adminId": "loki-0001",
     "pendingInvites": [],
     "rate": "520",
     "contact": "6301910135",
@@ -238,9 +238,9 @@
     "name": "fgg",
     "rating": 0,
     "members": [
-      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+      "loki-0001"
     ],
-    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "adminId": "loki-0001",
     "pendingInvites": [],
     "rate": "54",
     "contact": "555555522",
@@ -252,9 +252,9 @@
     "name": "gvd",
     "rating": 0,
     "members": [
-      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+      "loki-0001"
     ],
-    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "adminId": "loki-0001",
     "pendingInvites": [],
     "rate": "500",
     "contact": "5105205225",
@@ -266,15 +266,45 @@
     "name": "",
     "rating": 0,
     "members": [
-      "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5"
+      "loki-0001"
     ],
     "joinRequests": [],
     "pendingInvites": [],
-    "adminId": "74d4f220-7ea8-4c98-afa8-3d14c0c3dee5",
+    "adminId": "loki-0001",
     "rate": "",
     "contact": "",
     "location": "",
     "image": "https://images.unsplash.com/photo-1595959154942-8874f6762391?auto=format&fit=crop&q=80&w=400",
     "membersCount": 1
+  },
+  {
+    "id": "real-grp-1",
+    "name": "Bhoomi Agriculture Team",
+    "rating": 4.9,
+    "membersCount": 35,
+    "rate": 480,
+    "contact": "9876543211",
+    "location": "Punjab",
+    "image": "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=400"
+  },
+  {
+    "id": "real-grp-2",
+    "name": "Kisan Welfare Group",
+    "rating": 4.7,
+    "membersCount": 22,
+    "rate": 430,
+    "contact": "9876543212",
+    "location": "Haryana",
+    "image": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=400"
+  },
+  {
+    "id": "real-grp-3",
+    "name": "Marathwada Sanghatna",
+    "rating": 4.8,
+    "membersCount": 50,
+    "rate": 460,
+    "contact": "9876543213",
+    "location": "Maharashtra",
+    "image": "https://images.unsplash.com/photo-1541703672520-21319200aa97?auto=format&fit=crop&q=80&w=400"
   }
 ]

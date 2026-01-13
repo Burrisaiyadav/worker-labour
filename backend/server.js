@@ -31,15 +31,13 @@ io.on('connection', (socket) => {
     });
 
     socket.on('send-message', async (data) => {
-        const { senderId, receiverId, content } = data;
+        const { senderId, receiverId, content, type } = data;
         const Message = require('./models/MessageJSON');
-        const newMessage = new Message({ senderId, receiverId, content });
+        const newMessage = new Message({ senderId, receiverId, content, type: type || 'text' });
         await newMessage.save();
 
         // Emit to both sender and receiver
         io.to(senderId).to(receiverId).emit('receive-message', newMessage);
-
-        // Also notify via notifications if needed (optional)
     });
 
     socket.on('disconnect', () => {

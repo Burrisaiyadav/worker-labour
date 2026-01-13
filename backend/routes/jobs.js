@@ -124,24 +124,41 @@ router.put('/:id/status', auth, async (req, res) => {
             (Array.isArray(g.members) && g.members.some(mId => String(mId) === String(req.user.id)))
         ).map(g => String(g.id));
 
+        const isFarmer = String(job.userId) === String(req.user.id);
+        const isAssigned = String(job.assignedTo) === String(req.user.id) || myGroups.some(gId => String(gId) === String(job.assignedTo));
+
         if (status === 'In Progress' && job.status === 'Active') {
             job.assignedTo = req.user.id;
             job.status = 'In Progress';
-        } else if (status === 'Completed' && (String(job.assignedTo) === String(req.user.id) || myGroups.some(gId => String(gId) === String(job.assignedTo)))) {
-            job.status = 'Completed';
+        } else if (isFarmer || isAssigned) {
+            // Allow farmer or assigned labourer to update status (e.g. Arrived, Working, Completed)
+            job.status = status;
         } else {
-            if (String(job.userId) === String(req.user.id) || String(job.assignedTo) === String(req.user.id) || myGroups.some(gId => String(gId) === String(job.assignedTo))) {
-                job.status = status;
-            } else {
-                return res.status(401).json({ msg: 'Not authorized' });
-            }
+            return res.status(401).json({ msg: 'Not authorized' });
         }
 
         await job.save();
         const io = req.app.get('io');
-        io.to(job.userId).emit('job-status-updated', job);
+        if (io) {
+            io.to(job.userId).emit('job-status-updated', job);
+            if (job.assignedTo) {
+                io.to(job.assignedTo).emit('job-status-updated', job);
+            }
+        }
 
-        if (status === 'In Progress') {
+        if (isFarmer) {
+            // Notify labourer about status update from farmer
+            if (job.assignedTo) {
+                const newNotif = new Notification({
+                    userId: job.assignedTo,
+                    title: 'Job Updated',
+                    message: `Farmer ${job.farmerName} updated job "${job.title}" status to ${status}.`,
+                    type: 'job'
+                });
+                await newNotif.save();
+                if (io) io.to(job.assignedTo).emit('new-notification', newNotif);
+            }
+        } else if (status === 'In Progress') {
             const labourer = await User.findById(req.user.id);
             const newNotif = new Notification({
                 userId: job.userId,
@@ -150,7 +167,7 @@ router.put('/:id/status', auth, async (req, res) => {
                 type: 'job'
             });
             await newNotif.save();
-            io.to(job.userId).emit('new-notification', newNotif);
+            if (io) io.to(job.userId).emit('new-notification', newNotif);
         }
 
         res.json(job);
@@ -181,13 +198,20 @@ router.post('/attendance', auth, async (req, res) => {
         const activeJob = allJobs.find(j =>
             String(j.assignedTo) === String(labourId) &&
             String(j.userId) === String(farmer.id) &&
-            j.status === 'In Progress'
+            (j.status === 'In Progress' || j.status === 'Accepted')
         );
 
         if (activeJob) {
             activeJob.verified = true;
             activeJob.arrivedAt = new Date();
+            activeJob.status = 'Arrived'; // Set status to Arrived upon scan
             await activeJob.save();
+
+            const io = req.app.get('io');
+            if (io) {
+                io.to(activeJob.userId).emit('job-status-updated', activeJob);
+                io.to(activeJob.assignedTo).emit('job-status-updated', activeJob);
+            }
         }
 
         const io = req.app.get('io');
@@ -217,6 +241,45 @@ router.get('/:id', auth, async (req, res) => {
         const job = await Job.findById(req.params.id);
         if (!job) return res.status(404).json({ msg: 'Job not found' });
         res.json(job);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   POST /api/jobs/:id/request-payment
+// @desc    Request payment for a job
+// @access  Private
+router.post('/:id/request-payment', auth, async (req, res) => {
+    try {
+        const job = await Job.findById(req.params.id);
+        if (!job) return res.status(404).json({ msg: 'Job not found' });
+
+        // Update job
+        job.paymentRequested = true;
+        await job.save();
+
+        const sender = await User.findById(req.user.id);
+
+        // Create notification for farmer
+        const newNotif = new Notification({
+            userId: job.userId,
+            title: 'Payment Requested',
+            message: `${sender.name} has requested payment for "${job.title}".`,
+            type: 'payment_request',
+            metadata: { jobId: job.id, amount: job.cost }
+        });
+        await newNotif.save();
+
+        // Socket Broadcast to farmer
+        const io = req.app.get('io');
+        if (io) {
+            io.to(job.userId).emit('new-notification', newNotif);
+            io.to(job.userId).emit('job-status-updated', job);
+            io.to(req.user.id).emit('job-status-updated', job); // Notify labourer too
+        }
+
+        res.json({ success: true, job });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

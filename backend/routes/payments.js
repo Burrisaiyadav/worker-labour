@@ -11,6 +11,56 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET || 'mock_secret'
 });
 
+// @route   POST api/payments
+// @desc    Simulate/Record a payment
+// @access  Private
+router.post('/', auth, async (req, res) => {
+    try {
+        const { jobId, amount, payeeId, method } = req.body;
+
+        const job = await Job.findById(jobId);
+        if (!job) return res.status(404).json({ msg: 'Job not found' });
+
+        // Create payment record
+        const payment = new Payment({
+            payerId: req.user.id,
+            payeeId: payeeId,
+            amount: amount,
+            status: 'Completed',
+            details: `Simulated Payment (${method || 'manual'})`
+        });
+        await payment.save();
+
+        job.paymentStatus = 'Paid';
+        job.paymentId = payment.id;
+        job.status = 'Completed';
+        await job.save();
+
+        // Socket Broadcast
+        const io = req.app.get('io');
+        if (io) {
+            io.to(payeeId).emit('payment-verified', { job, payment });
+            io.to(req.user.id).emit('payment-verified', { job, payment });
+
+            // Notify payee
+            const Notification = require('../models/NotificationJSON');
+            const newNotif = new Notification({
+                userId: payeeId,
+                title: 'Payment Received',
+                message: `You have received a payment of ₹${amount} for job: ${job.title}`,
+                type: 'job'
+            });
+            await newNotif.save();
+            io.to(payeeId).emit('new-notification', newNotif);
+        }
+
+        res.json({ success: true, payment });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   POST api/payments/order
 // @desc    Create a Razorpay order
 // @access  Private
