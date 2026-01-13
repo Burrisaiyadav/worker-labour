@@ -6,7 +6,7 @@ import { api } from '../utils/api';
 import { useEffect } from 'react';
 import { io } from 'socket.io-client';
 
-const LabourNavbar = () => {
+const LabourNavbar = ({ user: propUser }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -15,8 +15,21 @@ const LabourNavbar = () => {
     const [socket, setSocket] = useState(null);
     
     // Retrieve user from local storage safely
-    const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : { name: 'Worker', role: 'labour', id: 'temp' };
+    const [user, setUser] = useState(propUser || JSON.parse(localStorage.getItem('user') || '{"name": "Worker", "role": "labour", "id": "temp"}'));
+
+    useEffect(() => {
+        const handleUserUpdate = () => {
+            const updatedUser = JSON.parse(localStorage.getItem('user'));
+            if (updatedUser) setUser(updatedUser);
+        };
+        window.addEventListener('user-updated', handleUserUpdate);
+        return () => window.removeEventListener('user-updated', handleUserUpdate);
+    }, []);
+
+    // Sync if user prop changes externally
+    useEffect(() => {
+        if (propUser) setUser(propUser);
+    }, [propUser]);
 
     useEffect(() => {
         const fetchUnread = async () => {
@@ -111,9 +124,13 @@ const LabourNavbar = () => {
 
                         <div 
                             onClick={() => navigate('/labour/profile')}
-                            className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border-2 border-green-50 shadow-sm cursor-pointer transition-transform hover:scale-105"
+                            className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border-2 border-green-50 shadow-sm cursor-pointer transition-transform hover:scale-105 overflow-hidden"
                         >
-                            {user.name ? user.name.charAt(0) : 'L'}
+                            {user.profileImage ? (
+                                <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
+                            ) : (
+                                user.name ? user.name.charAt(0) : 'L'
+                            )}
                         </div>
 
                         <button 
@@ -177,8 +194,12 @@ const LabourNavbar = () => {
                     })}
                      <div className="border-t border-gray-100 pt-4 mt-2">
                         <div className="flex items-center gap-3 mb-4 px-3" onClick={() => { navigate('/labour/profile'); setIsMenuOpen(false); }}>
-                             <div className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border-2 border-green-50 shadow-sm">
-                                {user.name ? user.name.charAt(0) : 'L'}
+                             <div className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border-2 border-green-50 shadow-sm overflow-hidden">
+                                {user.profileImage ? (
+                                    <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
+                                ) : (
+                                    user.name ? user.name.charAt(0) : 'L'
+                                )}
                             </div>
                             <div>
                                 <p className="text-sm font-semibold text-gray-900">{user.name}</p>

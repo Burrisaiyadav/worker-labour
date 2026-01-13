@@ -156,12 +156,14 @@
     "members": [
       "loki-0001"
     ],
-    "adminId": "loki-0001",
+    "joinRequests": [],
     "pendingInvites": [],
+    "adminId": "loki-0001",
     "rate": "500",
     "contact": "6301910135",
     "location": "Trl",
-    "image": "https://images.unsplash.com/photo-1595959154942-8874f6762391?auto=format&fit=crop&q=80&w=400"
+    "image": "https://images.unsplash.com/photo-1595959154942-8874f6762391?auto=format&fit=crop&q=80&w=400",
+    "membersCount": 1
   },
   {
     "id": "ed7f8c98-97b2-4f2b-9237-04296dd2eb08",

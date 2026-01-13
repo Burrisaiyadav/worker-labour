@@ -19,8 +19,22 @@ const FarmerNavbar = ({ user, unreadCount: propUnreadCount, onLogout, onPostJob 
     }, [propUnreadCount]);
     const [socket, setSocket] = useState(null);
 
-    // Fallback user if not provided (though dashboard should provide it)
-    const currentUser = user || JSON.parse(localStorage.getItem('user')) || { name: 'Farmer', role: 'farmer', location: '' };
+    // Live tracking of user data for real-time sync (e.g. profile photo)
+    const [currentUser, setCurrentUser] = useState(user || JSON.parse(localStorage.getItem('user')) || { name: 'Farmer', role: 'farmer', location: '' });
+    
+    useEffect(() => {
+        const handleUserUpdate = () => {
+            const updatedUser = JSON.parse(localStorage.getItem('user'));
+            if (updatedUser) setCurrentUser(updatedUser);
+        };
+        window.addEventListener('user-updated', handleUserUpdate);
+        return () => window.removeEventListener('user-updated', handleUserUpdate);
+    }, []);
+
+    // Sync if user prop changes externally
+    useEffect(() => {
+        if (user) setCurrentUser(user);
+    }, [user]);
 
     useEffect(() => {
         const fetchUnread = async () => {
@@ -108,9 +122,13 @@ const FarmerNavbar = ({ user, unreadCount: propUnreadCount, onLogout, onPostJob 
 
                     <div 
                         onClick={() => navigate('/farmer/profile')}
-                        className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border-2 border-green-50 shadow-sm cursor-pointer transition-transform hover:scale-105"
+                        className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border-2 border-green-50 shadow-sm cursor-pointer transition-transform hover:scale-105 overflow-hidden"
                     >
-                        {currentUser.name ? currentUser.name.charAt(0) : 'F'}
+                        {currentUser.profileImage ? (
+                            <img src={currentUser.profileImage} alt={currentUser.name} className="h-full w-full object-cover" />
+                        ) : (
+                            currentUser.name ? currentUser.name.charAt(0) : 'F'
+                        )}
                     </div>
 
                     <button 
@@ -169,9 +187,13 @@ const FarmerNavbar = ({ user, unreadCount: propUnreadCount, onLogout, onPostJob 
                         <div className="flex items-center gap-3 mb-4 px-3">
                              <div 
                                 onClick={() => { navigate('/farmer/profile'); setIsMenuOpen(false); }}
-                                className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border-2 border-green-50 shadow-sm cursor-pointer"
+                                className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border-2 border-green-50 shadow-sm cursor-pointer overflow-hidden"
                              >
-                                {currentUser.name ? currentUser.name.charAt(0) : 'F'}
+                                {currentUser.profileImage ? (
+                                    <img src={currentUser.profileImage} alt={currentUser.name} className="h-full w-full object-cover" />
+                                ) : (
+                                    currentUser.name ? currentUser.name.charAt(0) : 'F'
+                                )}
                             </div>
                             <div className="flex-1">
                                 <p className="text-sm font-semibold text-gray-900">{currentUser.name}</p>

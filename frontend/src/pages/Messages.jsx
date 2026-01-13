@@ -13,12 +13,16 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
   const [loadingJob, setLoadingJob] = useState(false);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [forwardingMessage, setForwardingMessage] = useState(null);
   const [socket, setSocket] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef(null);
   const timerRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const contextMenuRef = useRef(null);
+  const [contextMenu, setContextMenu] = useState(null);
 
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const isFarmer = currentUser?.role === 'farmer';
@@ -123,6 +127,10 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
         });
     });
 
+    newSocket.on('message-deleted', (msgId) => {
+        setMessages(prev => prev.filter(m => m.id !== msgId));
+    });
+
     setSocket(newSocket);
     const fetchConversations = async () => {
         try {
@@ -141,12 +149,15 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
   }, [currentUser.id, activeChat?.otherId]);
 
   useEffect(() => {
-    if (initialGroupName && chats.length > 0) {
-        const chat = chats.find(c => c.name === initialGroupName);
-        if (chat) setActiveChat(chat);
-        else if (initialOtherId) setActiveChat({ name: initialGroupName, otherId: initialOtherId, lastMsg: '', time: 'Now' });
+    if (initialGroupName && initialOtherId) {
+        setActiveChat({ 
+            name: initialGroupName, 
+            otherId: initialOtherId, 
+            lastMsg: '', 
+            time: 'Now' 
+        });
     }
-  }, [initialGroupName, initialOtherId, chats]);
+  }, [initialGroupName, initialOtherId]);
 
   useEffect(() => {
     if (activeChat) {
@@ -196,11 +207,42 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
           senderId: currentUser.id,
           receiverId: activeChat.otherId,
           content: finalContent,
-          type
+          type,
+          replyTo: replyingTo ? replyingTo.id : null,
+          isForwarded: type === 'forward'
       };
 
       socket.emit('send-message', msgData);
       if (!customContent) setNewMessage('');
+      setReplyingTo(null);
+  };
+
+  const handleForward = async (chat) => {
+    if (!forwardingMessage || !socket) return;
+    
+    const msgData = {
+        senderId: currentUser.id,
+        receiverId: chat.otherId,
+        content: forwardingMessage.content, // Already encrypted if text
+        type: forwardingMessage.type,
+        isForwarded: true
+    };
+
+    socket.emit('send-message', msgData);
+    setForwardingMessage(null);
+    alert(`Message forwarded to ${chat.name}`);
+  };
+
+  const handleDeleteMessage = async (msgId) => {
+    if (window.confirm('Delete this message for everyone?')) {
+        try {
+            await api.delete(`/messages/message/${msgId}`);
+            setMessages(prev => prev.filter(m => m.id !== msgId));
+        } catch (err) {
+            alert("Failed to delete message");
+        }
+    }
+    setContextMenu(null);
   };
 
   const startRecording = async () => {
@@ -262,6 +304,7 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
   };
 
   return (
+    <>
     <div className={`bg-gray-50 flex flex-col ${onClose ? 'h-full rounded-2xl overflow-hidden' : 'min-h-screen'}`}>
         <div className="bg-white p-3 md:p-4 flex items-center justify-between sticky top-0 z-10 border-b border-gray-100">
             <div className="flex items-center gap-2 md:gap-3">
@@ -351,29 +394,78 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
                     <div className="flex justify-center mb-4">
                         <span className="bg-white/90 backdrop-blur-md shadow-sm text-[8px] font-black text-gray-400 px-4 py-1.5 rounded-full uppercase tracking-widest border border-white">End-to-End Encrypted</span>
                     </div>
-                    {messages.map((msg, i) => (
-                        <div key={msg.id || i} className={`flex ${msg.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`
-                                relative px-4 py-3 max-w-[85%] shadow-sm transition-all duration-300
-                                ${msg.senderId === currentUser.id 
-                                    ? 'bg-green-600 text-white rounded-2xl rounded-tr-none' 
-                                    : 'bg-white text-gray-800 rounded-2xl rounded-tl-none border border-gray-100'}
-                            `}>
-                                {msg.type === 'audio' ? (
-                                    <VoiceMessage 
-                                        src={msg.content} 
-                                        isOwn={msg.senderId === currentUser.id} 
-                                    />
-                                ) : (
-                                    <p className="text-xs font-bold leading-relaxed">{msg.content}</p>
-                                )}
-                                <div className={`text-[6px] font-black mt-1 flex items-center gap-1 ${msg.senderId === currentUser.id ? 'text-green-200 justify-end' : 'text-gray-400 justify-start'}`}>
-                                    {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                                    {msg.senderId === currentUser.id && <CheckCircle2 size={8} className="fill-current" />}
+                    {messages.map((msg, i) => {
+                        const isOwn = msg.senderId === currentUser.id;
+                        const repliedMsg = msg.replyTo ? messages.find(m => m.id === msg.replyTo) : null;
+
+                        return (
+                            <div key={msg.id || i} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group/msg relative`}>
+                                <div className={`
+                                    relative px-4 py-3 max-w-[85%] shadow-sm transition-all duration-300 cursor-context-menu
+                                    ${isOwn 
+                                        ? 'bg-green-600 text-white rounded-2xl rounded-tr-none' 
+                                        : 'bg-white text-gray-800 rounded-2xl rounded-tl-none border border-gray-100'}
+                                `}
+                                onClick={(e) => {
+                                    setContextMenu({
+                                        id: msg.id,
+                                        x: e.clientX,
+                                        y: e.clientY,
+                                        msg: msg
+                                    });
+                                }}
+                                >
+                                    {msg.isForwarded && (
+                                        <div className="flex items-center gap-1 mb-1 opacity-70 italic text-[8px] font-black uppercase">
+                                            <Send size={8} /> Forwarded
+                                        </div>
+                                    )}
+                                    
+                                    {repliedMsg && (
+                                        <div className={`mb-2 p-2 rounded-lg border-l-4 bg-black/5 text-[9px] truncate
+                                            ${isOwn ? 'border-green-300 text-green-100' : 'border-green-600 text-gray-500'}
+                                        `}>
+                                            <p className="font-black uppercase mb-0.5">{repliedMsg.senderId === currentUser.id ? 'You' : (activeChat.name)}</p>
+                                            {repliedMsg.type === 'audio' ? '🎤 Voice message' : repliedMsg.content}
+                                        </div>
+                                    )}
+
+                                    {msg.type === 'audio' ? (
+                                        <VoiceMessage 
+                                            src={msg.content} 
+                                            isOwn={isOwn} 
+                                        />
+                                    ) : (
+                                        <p className="text-xs font-bold leading-relaxed">{msg.content}</p>
+                                    )}
+                                    <div className={`text-[6px] font-black mt-1 flex items-center gap-1 ${isOwn ? 'text-green-200 justify-end' : 'text-gray-400 justify-start'}`}>
+                                        {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                                        {isOwn && <CheckCircle2 size={8} className="fill-current" />}
+                                    </div>
                                 </div>
+
+                                {contextMenu && contextMenu.id === msg.id && (
+                                    <div 
+                                        className={`absolute z-30 bg-white rounded-xl shadow-2xl border border-gray-100 w-32 overflow-hidden animate-in fade-in zoom-in duration-100
+                                            ${isOwn ? 'right-0 top-full' : 'left-0 top-full'}
+                                        `}
+                                    >
+                                        <button onClick={() => { setReplyingTo(msg); setContextMenu(null); }} className="w-full text-left px-4 py-2.5 hover:bg-gray-50 text-[9px] font-black uppercase tracking-widest text-gray-600 border-b border-gray-50 flex items-center gap-2">
+                                            Reply
+                                        </button>
+                                        <button onClick={() => { setForwardingMessage(msg); setContextMenu(null); }} className="w-full text-left px-4 py-2.5 hover:bg-gray-50 text-[9px] font-black uppercase tracking-widest text-gray-600 border-b border-gray-50 flex items-center gap-2">
+                                            Forward
+                                        </button>
+                                        {isOwn && (
+                                            <button onClick={() => handleDeleteMessage(msg.id)} className="w-full text-left px-4 py-2.5 hover:bg-red-50 text-[9px] font-black uppercase tracking-widest text-red-600 flex items-center gap-2">
+                                                Delete
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                     <div ref={messagesEndRef} />
                 </div>
             )}
@@ -381,58 +473,105 @@ const Messages = ({ onClose, initialGroupName, initialOtherId, jobId }) => {
 
         {activeChat && (
             <div className="bg-white p-2 pb-5 md:pb-3 border-t border-gray-100 sticky bottom-0">
-                <div className="flex items-center gap-2 px-2">
-                    {isRecording ? (
-                        <div className="flex-1 flex items-center justify-between bg-red-50 rounded-2xl px-4 py-3 border border-red-100 animate-pulse">
-                            <div className="flex items-center gap-2">
-                                <div className="h-2 w-2 bg-red-500 rounded-full animate-ping"></div>
-                                <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Recording {recordingTime}s</span>
+                <div className="flex flex-col gap-2">
+                    {replyingTo && (
+                        <div className="mx-2 p-2 bg-gray-50 rounded-xl border-l-4 border-green-600 flex items-center justify-between animate-in slide-in-from-bottom-2">
+                            <div className="truncate">
+                                <p className="text-[8px] font-black text-green-600 uppercase">Replying to {replyingTo.senderId === currentUser.id ? 'yourself' : activeChat.name}</p>
+                                <p className="text-[10px] text-gray-500 font-bold truncate">
+                                    {replyingTo.type === 'audio' ? '🎤 Voice message' : replyingTo.content}
+                                </p>
                             </div>
-                            <span className="text-[8px] font-bold text-red-400 uppercase">Release to Send</span>
-                        </div>
-                    ) : (
-                        <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-2xl px-3 py-1 border border-gray-100 focus-within:border-green-500 transition-all">
-                            <input 
-                                 type="text" 
-                                 value={newMessage}
-                                 onChange={(e) => setNewMessage(e.target.value)}
-                                 placeholder="Type a message..." 
-                                 className="flex-1 bg-transparent border-none py-3 focus:outline-none text-xs font-bold text-gray-700"
-                            />
+                            <button onClick={() => setReplyingTo(null)} className="h-6 w-6 flex items-center justify-center text-gray-400 hover:text-gray-600">
+                                <ChevronLeft className="rotate-90" size={16} />
+                            </button>
                         </div>
                     )}
                     
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2 px-2">
                         {isRecording ? (
-                            <button 
-                                onClick={stopRecording} 
-                                className="h-12 w-12 bg-red-600 rounded-full text-white flex items-center justify-center shadow-lg shadow-red-100"
-                            >
-                                <Square size={20} fill="white" />
-                            </button>
+                            <div className="flex-1 flex items-center justify-between bg-red-50 rounded-2xl px-4 py-3 border border-red-100 animate-pulse">
+                                <div className="flex items-center gap-2">
+                                    <div className="h-2 w-2 bg-red-500 rounded-full animate-ping"></div>
+                                    <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Recording {recordingTime}s</span>
+                                </div>
+                                <span className="text-[8px] font-bold text-red-400 uppercase">Release to Send</span>
+                            </div>
                         ) : (
-                            <>
-                                <button 
-                                    onClick={startRecording}
-                                    className="h-12 w-12 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center border border-gray-200 active:bg-green-100 active:text-green-600 transition-all"
-                                >
-                                    <Mic size={20} />
-                                </button>
-                                {newMessage.trim() && (
-                                    <button 
-                                        onClick={(e) => handleSendMessage(e)}
-                                        className="h-12 w-12 bg-green-600 rounded-full text-white flex items-center justify-center shadow-lg active:scale-95"
-                                    >
-                                        <Send size={20} />
-                                    </button>
-                                )}
-                            </>
+                            <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-2xl px-3 py-1 border border-gray-100 focus-within:border-green-500 transition-all">
+                                <input 
+                                     type="text" 
+                                     value={newMessage}
+                                     onChange={(e) => setNewMessage(e.target.value)}
+                                     placeholder="Type a message..." 
+                                     className="flex-1 bg-transparent border-none py-3 focus:outline-none text-xs font-bold text-gray-700"
+                                />
+                            </div>
                         )}
+                        
+                        <div className="flex gap-2">
+                            {isRecording ? (
+                                <button 
+                                    onClick={stopRecording} 
+                                    className="h-12 w-12 bg-red-600 rounded-full text-white flex items-center justify-center shadow-lg shadow-red-100"
+                                >
+                                    <Square size={20} fill="white" />
+                                </button>
+                            ) : (
+                                <>
+                                    <button 
+                                        onClick={startRecording}
+                                        className="h-12 w-12 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center border border-gray-200 active:bg-green-100 active:text-green-600 transition-all"
+                                    >
+                                        <Mic size={20} />
+                                    </button>
+                                    {newMessage.trim() && (
+                                        <button 
+                                            onClick={(e) => handleSendMessage(e)}
+                                            className="h-12 w-12 bg-green-600 rounded-full text-white flex items-center justify-center shadow-lg active:scale-95"
+                                        >
+                                            <Send size={20} />
+                                        </button>
+                                    )}
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
         )}
     </div>
+
+    {forwardingMessage && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white w-full max-w-xs rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="p-6 border-b border-gray-100">
+                    <h2 className="text-xl font-black text-gray-900 uppercase">Forward To</h2>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Select a conversation</p>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                    {chats.map(chat => (
+                        <div key={chat.id} onClick={() => handleForward(chat)} className="p-4 flex items-center gap-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50">
+                            <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-black">
+                                {chat.name.charAt(0)}
+                            </div>
+                            <span className="font-bold text-gray-900 text-sm uppercase">{chat.name}</span>
+                        </div>
+                    ))}
+                </div>
+                <div className="p-4 bg-gray-50">
+                    <button onClick={() => setForwardingMessage(null)} className="w-full py-3 bg-white text-gray-400 font-black text-[10px] uppercase tracking-widest rounded-xl border border-gray-200">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    )}
+
+    {contextMenu && (
+        <div className="fixed inset-0 z-20" onClick={() => setContextMenu(null)}></div>
+    )}
+  </>
   );
 };
 

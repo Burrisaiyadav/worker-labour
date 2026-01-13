@@ -58,6 +58,96 @@ router.get('/my-groups', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/groups/:id
+// @desc    Get group details by ID
+// @access  Private
+router.get('/:id', auth, async (req, res) => {
+    try {
+        const groups = await LabourGroup.find();
+        const group = groups.find(g => g.id === req.params.id);
+
+        if (!group) return res.status(404).json({ msg: 'Group not found' });
+
+        // Normalize members to an array (handles legacy numeric members)
+        const memberIds = Array.isArray(group.members) ? group.members : [];
+
+        // Check if user is admin or member
+        const isMember = String(group.adminId) === String(req.user.id) ||
+            memberIds.some(mId => String(mId) === String(req.user.id));
+
+        if (!isMember) {
+            return res.status(403).json({ msg: 'Access denied. You are not a member of this group.' });
+        }
+
+        // Enrich members with user details
+        const enrichedMembers = await Promise.all(memberIds.map(async (mId) => {
+            const memberUser = await User.findById(mId);
+            return memberUser ? {
+                id: memberUser.id,
+                name: memberUser.name,
+                profileImage: memberUser.profileImage,
+                role: memberUser.role,
+                mobile: memberUser.mobile
+            } : null;
+        }));
+
+        // Enrich join requests with user details
+        const requestIds = Array.isArray(group.joinRequests) ? group.joinRequests : [];
+        const enrichedRequests = await Promise.all(requestIds.map(async (rId) => {
+            const requester = await User.findById(rId);
+            return requester ? {
+                id: requester.id,
+                name: requester.name,
+                profileImage: requester.profileImage,
+                mobile: requester.mobile
+            } : null;
+        }));
+
+        res.json({
+            ...group,
+            members: enrichedMembers.filter(m => m !== null),
+            joinRequests: enrichedRequests.filter(r => r !== null)
+        });
+    } catch (err) {
+        console.error("Error fetching group details:", err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   PUT /api/groups/:id
+// @desc    Update group details
+// @access  Private (Admin only)
+router.put('/:id', auth, async (req, res) => {
+    try {
+        const groups = await LabourGroup.find();
+        const groupData = groups.find(g => g.id === req.params.id);
+
+        if (!groupData) return res.status(404).json({ msg: 'Group not found' });
+        if (String(groupData.adminId) !== String(req.user.id)) {
+            return res.status(403).json({ msg: 'Not authorized' });
+        }
+
+        const { name, rate, contact, location, image } = req.body;
+        const group = new LabourGroup(groupData);
+
+        if (name) group.name = name;
+        if (rate) group.rate = rate;
+        if (contact) group.contact = contact;
+        if (location) group.location = location;
+        if (image) group.image = image;
+
+        await group.save();
+
+        const io = req.app.get('io');
+        if (io) io.emit('group-updated', group);
+
+        res.json(group);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   POST /api/groups/:id/invite
 // @desc    Invite a user to a group
 // @access  Private (Admin only)
@@ -241,7 +331,7 @@ router.post('/:id/approve', auth, async (req, res) => {
         });
         await notification.save();
 
-        // CRITICAL: Update user account status to 'group'
+        // Update user account status to 'group'
         const user = await User.findById(userId);
         if (user && user.accountType !== 'group') {
             user.accountType = 'group';

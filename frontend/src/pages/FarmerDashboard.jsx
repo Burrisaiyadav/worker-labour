@@ -22,6 +22,7 @@ import PostJobModal from '../components/PostJobModal';
 import ScanQRModal from '../components/ScanQRModal';
 import FarmerNavbar from '../components/FarmerNavbar';
 import JobDetailsModal from '../components/JobDetailsModal';
+import RatingModal from '../components/RatingModal';
 import { api } from '../utils/api';
 import { io } from 'socket.io-client';
 
@@ -39,6 +40,7 @@ const FarmerDashboard = () => {
     const [selectedOtherId, setSelectedOtherId] = useState(null);
     const [selectedJobId, setSelectedJobId] = useState(null);
     const [selectedJob, setSelectedJob] = useState(null);
+    const [ratingJob, setRatingJob] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -149,7 +151,12 @@ const FarmerDashboard = () => {
     const handleUpdateStatus = async (jobId, newStatus) => {
         try {
             await api.put(`/jobs/${jobId}/status`, { status: newStatus });
-            alert(`Job marked as ${newStatus}!`);
+            if (newStatus === 'Completed') {
+                const job = activeJobs.find(j => j.id === jobId);
+                if (job) setRatingJob(job);
+            } else {
+                alert(`Job marked as ${newStatus}!`);
+            }
             // Refresh
             const data = await api.get('/dashboard/farmer');
             setDashboardData(data);
@@ -438,14 +445,23 @@ const FarmerDashboard = () => {
                                                  )}
                                                  
                                                  {/* Allow Payment in Arrived, Working, or Completed status */}
-                                                 {['Arrived', 'Working', 'Completed'].includes(job.status) && job.paymentStatus !== 'Paid' && (
-                                                     <button 
-                                                         onClick={() => navigate(`/payment/${job.id}`)}
-                                                         className="flex-1 h-12 bg-green-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-100 animate-pulse"
-                                                     >
-                                                         <DollarSign className="h-4 w-4" /> Pay Now
-                                                     </button>
-                                                 )}
+                                                  {['Arrived', 'Working', 'Completed'].includes(job.status) && job.paymentStatus !== 'Paid' && (
+                                                      <button 
+                                                          onClick={() => navigate(`/payment/${job.id}`)}
+                                                          className="flex-1 h-12 bg-green-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-100 animate-pulse"
+                                                      >
+                                                          <DollarSign className="h-4 w-4" /> Pay Now
+                                                      </button>
+                                                  )}
+
+                                                  {job.status === 'Completed' && !job.rating && (
+                                                      <button 
+                                                          onClick={() => setRatingJob(job)}
+                                                          className="flex-1 h-12 bg-yellow-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-yellow-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-yellow-100"
+                                                      >
+                                                          <Star className="h-4 w-4" /> Rate Work
+                                                      </button>
+                                                  )}
                                                  {job.paymentStatus === 'Paid' && (
                                                      <div className="flex-1 h-12 bg-gray-100 text-gray-500 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
                                                          <Check className="h-4 w-4" /> Paid
@@ -543,6 +559,11 @@ const FarmerDashboard = () => {
             {showPostJob && <PostJobModal onClose={() => setShowPostJob(false)} onSubmit={handlePostJob} />}
             {showScanQR && <ScanQRModal onClose={() => setShowScanQR(false)} />}
             {selectedJob && <JobDetailsModal job={selectedJob} onClose={() => setSelectedJob(null)} />}
+            {ratingJob && <RatingModal job={ratingJob} onClose={() => setRatingJob(null)} onSuccess={() => {
+                setRatingJob(null);
+                // Refresh data happens inside RatingModal onSuccess or here
+                api.get('/dashboard/farmer').then(setDashboardData);
+            }} />}
         </div>
     );
 };

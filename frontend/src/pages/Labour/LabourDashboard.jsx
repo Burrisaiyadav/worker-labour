@@ -30,11 +30,19 @@ const LabourDashboard = () => {
     const navigate = useNavigate();
 
     // Mock User from local storage for display
-    const user = JSON.parse(localStorage.getItem('user')) || { name: 'Worker', id: '123' };
+    // State for user details to ensure real-time updates (like rating)
+    const [userData, setUserData] = useState(JSON.parse(localStorage.getItem('user')) || { name: 'Worker', id: '123' });
 
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
+                // Fetch latest user info for real rating
+                const currentUser = await api.get('/auth/user');
+                if (currentUser) {
+                    setUserData(currentUser);
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                }
+
                 const data = await api.get('/jobs/available');
                 if (data) {
                     const formattedJobs = data.map(job => ({
@@ -111,7 +119,7 @@ const LabourDashboard = () => {
         return () => {
             if (newSocket) newSocket.disconnect();
         };
-    }, [user.id]);
+    }, [userData.id]);
 
     const handleAccept = async (id) => {
         try {
@@ -166,14 +174,14 @@ const LabourDashboard = () => {
                 <div className="mb-4 lg:mb-6 flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4">
                     <div>
                         <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 flex items-center gap-2">
-                            Welcome back, <span className="text-green-600">{user.name?.split(' ')[0] || 'Worker'}</span>!
-                            {user.accountType === 'group' && (
+                            Welcome back, <span className="text-green-600">{userData.name?.split(' ')[0] || 'Worker'}</span>!
+                            {userData.accountType === 'group' && (
                                 <span className="text-[8px] md:text-[9px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-lg uppercase tracking-widest align-middle ml-2">Group</span>
                             )}
                         </h1>
                         <p className="text-gray-400 mt-1 md:mt-1.5 flex items-center gap-2 font-bold uppercase tracking-widest text-[8px] md:text-[9px]">
                             <MapPin className="h-3 w-3 text-green-600" />
-                            {user.location || 'Location not set'}
+                            {userData.location || 'Location not set'}
                             <span className="h-1 w-1 bg-gray-300 rounded-full mx-1"></span>
                             {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </p>
@@ -192,7 +200,9 @@ const LabourDashboard = () => {
                     </div>
                     <div className="bg-white p-4 md:p-5 rounded-2xl md:rounded-[1.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-yellow-50 transition-all group">
                         <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-yellow-600 transition-colors">Rating</p>
-                        <p className="text-xl md:text-2xl font-black text-yellow-500 flex items-center gap-1.5 tracking-tighter">4.9 <Star className="h-4 w-4 md:h-5 md:w-5 fill-current" /></p>
+                        <p className="text-xl md:text-2xl font-black text-yellow-500 flex items-center gap-1.5 tracking-tighter">
+                            {userData.rating || '4.8'} <Star className="h-4 w-4 md:h-5 md:w-5 fill-current" />
+                        </p>
                     </div>
                     <div className="bg-white p-4 md:p-5 rounded-2xl md:rounded-[1.5rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-orange-50 transition-all group">
                         <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-orange-600 transition-colors">Active Jobs</p>
@@ -349,7 +359,7 @@ const LabourDashboard = () => {
                                                 </div>
                                             </div>
                                             <button 
-                                                onClick={() => setShowGroupDetails(group)}
+                                                onClick={() => navigate(`/labour/group-management/${group.id}`)}
                                                 className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
                                             >
                                                 Manage Group

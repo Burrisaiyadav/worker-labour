@@ -62,12 +62,15 @@ router.get('/:otherId', auth, async (req, res) => {
 // @access  Private
 router.post('/:otherId', auth, async (req, res) => {
     try {
-        const { content } = req.body;
+        const { content, type, replyTo, isForwarded } = req.body;
         const Message = require('../models/MessageJSON');
         const newMessage = new Message({
             senderId: req.user.id,
             receiverId: req.params.otherId,
-            content
+            content,
+            type: type || 'text',
+            replyTo,
+            isForwarded
         });
         await newMessage.save();
 
@@ -78,6 +81,32 @@ router.post('/:otherId', auth, async (req, res) => {
         }
 
         res.json(newMessage);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   DELETE api/messages/message/:id
+// @desc    Delete a specific message
+// @access  Private
+router.delete('/message/:id', auth, async (req, res) => {
+    try {
+        const message = await Message.find({}); // This is inefficient but model doesn't have findById
+        const found = message.find(m => m.id === req.params.id);
+
+        if (!found) return res.status(404).json({ msg: 'Message not found' });
+        if (found.senderId !== req.user.id) return res.status(401).json({ msg: 'Unauthorized' });
+
+        await Message.deleteById(req.params.id);
+
+        // Notify client via socket
+        const io = req.app.get('io');
+        if (io) {
+            io.to(found.senderId).to(found.receiverId).emit('message-deleted', req.params.id);
+        }
+
+        res.json({ msg: 'Message deleted' });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

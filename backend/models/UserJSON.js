@@ -18,6 +18,7 @@ class UserJSON {
         this.name = data.name;
         this.role = data.role || 'farmer';
         this.mobile = data.mobile || '';
+        this.profileImage = data.profileImage || ''; // Profile image (base64 or URL)
         this.location = data.location || '';
         this.gender = data.gender || '';
         this.skills = data.skills || [];
@@ -28,6 +29,8 @@ class UserJSON {
         this.rate = data.rate || '';
         this.accountType = data.accountType || 'individual'; // 'individual' or 'group'
         this.groupMembersCount = data.groupMembersCount || 0;
+        this.rating = data.rating || 4.8; // Default initial rating
+        this.ratingCount = data.ratingCount || 0;
         this.loginOtp = data.loginOtp;
         this.loginOtpExpire = data.loginOtpExpire ? new Date(data.loginOtpExpire) : undefined;
         this.createdAt = data.createdAt || new Date();
@@ -78,31 +81,37 @@ class UserJSON {
     async save() {
         const users = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 
-        // If ID is a UUID or missing, generate a short sequenced ID (username-0001)
-        const isUuid = (id) => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-
-        if (!this.id || isUuid(this.id)) {
-            const originalId = this.id;
+        if (!this.id) {
             const namePrefix = (this.name || 'user').toLowerCase().replace(/\s+/g, '').substring(0, 8);
-            const others = users.filter(u => u.id && u.id.startsWith(`${namePrefix}-`));
-            let maxSeq = 0;
-            others.forEach(u => {
-                const parts = u.id.split('-');
-                const seq = parseInt(parts[parts.length - 1]);
-                if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
-            });
-            this.id = `${namePrefix}-${String(maxSeq + 1).padStart(4, '0')}`;
 
-            // If we replaced a UUID, we should ideally update other collections, 
-            // but for now we primarily care about new users or clean display.
-            console.log(`Migrated/Generated ID: ${originalId || 'new'} -> ${this.id}`);
+            // Generate a random 4-character alphanumeric suffix
+            const generateRandomSuffix = () => {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let result = '';
+                for (let i = 0; i < 4; i++) {
+                    result += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return result;
+            };
+
+            let newId;
+            let isDuplicate = true;
+            while (isDuplicate) {
+                newId = `${namePrefix}-${generateRandomSuffix()}`;
+                isDuplicate = users.some(u => u.id === newId);
+            }
+
+            this.id = newId;
+            console.log(`Generated New ID: ${this.id}`);
         }
 
         const existingIndex = users.findIndex(u => u.id === this.id);
 
         if (existingIndex >= 0) {
+            console.log('Updating existing user in users.json. Image length:', this.profileImage ? this.profileImage.length : 0);
             users[existingIndex] = { ...this };
         } else {
+            console.log('Creating new user in users.json. Image length:', this.profileImage ? this.profileImage.length : 0);
             users.push({ ...this });
         }
 

@@ -18,6 +18,7 @@ import LabourProfile from './pages/Labour/LabourProfile';
 import AttendanceScanner from './pages/Labour/AttendanceScanner';
 import JobHistory from './pages/Labour/JobHistory';
 import Notifications from './pages/Labour/Notifications';
+import GroupManagement from './pages/Labour/GroupManagement';
 
 import BottomNav from './components/BottomNav';
 
@@ -44,6 +45,7 @@ const Layout = () => {
     '/labour/scan',
     '/labour/history',
     '/labour/notifications',
+    '/labour/group-management',
     '/payment'
   ];
 
@@ -75,6 +77,7 @@ const Layout = () => {
           <Route path="/labour/scan" element={<AttendanceScanner />} />
           <Route path="/labour/history" element={<JobHistory />} />
           <Route path="/labour/notifications" element={<Notifications />} />
+          <Route path="/labour/group-management/:groupId" element={<GroupManagement />} />
         </Routes>
       </main>
       {shouldShowNavbar && <Footer />}

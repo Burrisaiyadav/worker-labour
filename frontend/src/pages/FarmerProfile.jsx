@@ -15,6 +15,7 @@ const FarmerProfile = () => {
         name: savedUser.name || '',
         role: savedUser.role || 'farmer',
         mobile: savedUser.mobile || '',
+        profileImage: savedUser.profileImage || '',
         location: savedUser.location || '',
         gender: savedUser.gender || '',
         crops: savedUser.crops || [],
@@ -49,6 +50,21 @@ const FarmerProfile = () => {
         fetchUser();
     }, []);
 
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 1024 * 1024) { // 1MB limit for base64
+                alert("Image too large. Please select an image under 1MB.");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setUser({ ...user, profileImage: reader.result });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSave = async () => {
         try {
             const updatedUser = await api.put('/auth/profile', {
@@ -58,7 +74,8 @@ const FarmerProfile = () => {
                 farmSize: user.farmSize,
                 crops: user.crops,
                 experience: user.experience,
-                gender: user.gender
+                gender: user.gender,
+                profileImage: user.profileImage
             });
             
             const newUserState = { ...user, ...updatedUser };
@@ -69,6 +86,7 @@ const FarmerProfile = () => {
             }));
             
             setIsEditing(false);
+            window.dispatchEvent(new Event('user-updated'));
             alert("Profile Updated Successfully!");
         } catch (err) {
             console.error(err);
@@ -117,11 +135,25 @@ const FarmerProfile = () => {
                              <div className="absolute top-0 left-0 right-0 h-20 md:h-28 bg-green-50/50 group-hover:bg-green-50 transition-colors duration-500"></div>
                              
                              <div className="relative z-10">
-                                <div className="h-20 w-20 md:h-24 md:w-24 bg-white rounded-2xl md:rounded-[1.8rem] mx-auto p-1 shadow-xl shadow-green-100 mb-4 md:mb-5 group-hover:scale-105 transition-transform duration-500">
-                                     <div className="h-full w-full bg-green-600 rounded-2xl md:rounded-[1.8rem] flex items-center justify-center text-2xl md:text-3xl font-black text-white relative overflow-hidden italic">
-                                        {user.name?.charAt(0)}
-                                        <div className={`absolute bottom-2 right-2 h-3.5 w-3.5 border-[3px] border-green-600 rounded-full ${isOnline ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                                     </div>
+                                <div className="relative h-20 w-20 md:h-24 md:w-24 mx-auto mb-4 md:mb-5 group-profile-img">
+                                    <div className="h-full w-full bg-white rounded-2xl md:rounded-[1.8rem] p-1 shadow-xl shadow-green-100 group-hover:scale-105 transition-transform duration-500 overflow-hidden">
+                                        <div className="h-full w-full bg-green-600 rounded-2xl md:rounded-[1.8rem] flex items-center justify-center text-2xl md:text-3xl font-black text-white relative overflow-hidden italic">
+                                            {user.profileImage ? (
+                                                <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
+                                            ) : (
+                                                user.name?.charAt(0)
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    {isEditing && (
+                                        <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl md:rounded-[1.8rem] cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                            <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                                            <Camera className="text-white h-6 w-6 md:h-8 md:w-8" />
+                                        </label>
+                                    )}
+                                    
+                                    <div className={`absolute bottom-0 right-0 h-4 w-4 md:h-5 md:w-5 border-[3px] border-white rounded-full ${isOnline ? 'bg-green-400' : 'bg-gray-400'} shadow-sm`}></div>
                                 </div>
                                 <h2 className="text-lg md:text-xl font-bold text-gray-900 uppercase">{user.name}</h2>
                                 <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1 md:mt-1.5">Farmer • Verified Partner</p>

@@ -16,7 +16,8 @@ class LabourGroupJSON {
     constructor(data) {
         this.id = data.id || uuidv4();
         this.name = data.name;
-        this.rating = data.rating || 0;
+        this.rating = data.rating || 4.5; // Default initial rating
+        this.ratingCount = data.ratingCount || 0;
         this.members = Array.isArray(data.members) ? data.members : [];
         this.joinRequests = Array.isArray(data.joinRequests) ? data.joinRequests : [];
         this.pendingInvites = Array.isArray(data.pendingInvites) ? data.pendingInvites : [];

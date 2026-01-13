@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken'); // Assuming JWT is still needed for session management after OTP
+const jwt = require('jsonwebtoken');
 const User = require('../models/UserJSON');
 const LabourGroup = require('../models/LabourGroupJSON');
 
@@ -29,8 +29,8 @@ router.post('/register', async (req, res) => {
         // Auto-create Group if accountType is 'group'
         if (role === 'labour' && accountType === 'group') {
             const newGroup = new LabourGroup({
-                name: user.name, // Use registered group name
-                rate: 500, // Default rate
+                name: user.name,
+                rate: 500,
                 contact: user.mobile,
                 location: user.location,
                 adminId: user.id,
@@ -48,7 +48,7 @@ router.post('/register', async (req, res) => {
         jwt.sign(
             payload,
             process.env.JWT_SECRET,
-            { expiresIn: '30d' }, // Longer expiration for mobile app usability
+            { expiresIn: '30d' },
             (err, token) => {
                 if (err) throw err;
                 res.json({
@@ -81,19 +81,14 @@ router.post('/login/send-otp', async (req, res) => {
             return res.status(400).json({ msg: 'Mobile number not found. Please register first.' });
         }
 
-        // Generate 4 digit OTP for simplicity
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
-
         user.loginOtp = otp;
-        user.loginOtpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+        user.loginOtpExpire = Date.now() + 10 * 60 * 1000;
 
         await user.save();
-
-        // In a real app, send SMS here. For now, return OTP in response.
         console.log(`OTP for ${mobile}: ${otp}`);
 
         res.json({ success: true, msg: 'OTP sent to mobile number', otp: otp });
-
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
@@ -101,21 +96,22 @@ router.post('/login/send-otp', async (req, res) => {
 });
 
 // Login Step 2: Verify OTP
-router.post('/login/verify', async (req, res) => {
+router.post('/login/verify-otp', async (req, res) => {
     const { mobile: rawMobile, otp } = req.body;
     const mobile = rawMobile ? rawMobile.trim() : '';
 
     try {
-        // Find user by mobile first to ensure we are checking the right user
-        let user = await User.findOne({ mobile });
-
+        const user = await User.findOne({ mobile });
         if (!user) {
             return res.status(400).json({ msg: 'User not found' });
         }
 
-        // Check if OTP matches and is not expired
-        if (user.loginOtp !== otp || new Date(user.loginOtpExpire) < new Date()) {
-            return res.status(400).json({ msg: 'Invalid or Expired OTP' });
+        if (user.loginOtp !== otp) {
+            return res.status(400).json({ msg: 'Invalid OTP' });
+        }
+
+        if (new Date(user.loginOtpExpire) < new Date()) {
+            return res.status(400).json({ msg: 'OTP expired' });
         }
 
         // Clear OTP fields
@@ -148,7 +144,6 @@ router.post('/login/verify', async (req, res) => {
                 });
             }
         );
-
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
@@ -157,37 +152,39 @@ router.post('/login/verify', async (req, res) => {
 
 const auth = require('../middleware/authMiddleware');
 
-// @route   GET /api/auth/user
-// @desc    Get user data
-// @access  Private
-router.get('/user', auth, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        res.json(user);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
-    }
-});
-
 // @route   GET /api/auth/user/:id
-// @desc    Get user data by ID
+// @desc    Get user details by ID
 // @access  Private
 router.get('/user/:id', auth, async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
-        // Return only public info
         res.json({
             id: user.id,
             name: user.name,
-            location: user.location,
             role: user.role,
             mobile: user.mobile,
-            accountType: user.accountType,
-            profileImage: user.profileImage
+            location: user.location,
+            profileImage: user.profileImage,
+            gender: user.gender,
+            skills: user.skills,
+            experience: user.experience,
+            rate: user.rate
         });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// @route   GET /api/auth/user
+// @desc    Get current user details
+// @access  Private
+router.get('/user', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        res.json(user);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
@@ -202,8 +199,10 @@ router.put('/profile', auth, async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
-        const { name, location, skills, experience, radius, rate, phone, gender, farmSize, crops } = req.body;
-        console.log('Updating Profile for User:', req.user.id, 'Data:', req.body);
+        const { name, location, skills, experience, radius, rate, phone, gender, farmSize, crops, profileImage } = req.body;
+        console.log('--- Profile Update Debug ---');
+        console.log('User ID:', req.user.id);
+        console.log('Profile Image Received (length):', profileImage ? profileImage.length : 'undefined/null');
 
         if (name) user.name = name;
         if (location) user.location = location;
@@ -215,6 +214,11 @@ router.put('/profile', auth, async (req, res) => {
         if (rate) user.rate = rate;
         if (phone) user.mobile = phone;
         if (gender) user.gender = gender;
+
+        if (profileImage !== undefined) {
+            console.log('Setting user.profileImage to received value');
+            user.profileImage = profileImage;
+        }
 
         await user.save();
         res.json(user);
@@ -232,7 +236,6 @@ router.get('/labourers', auth, async (req, res) => {
         const individualLabourers = await User.find({ role: 'labour', accountType: 'individual' });
         const groups = await LabourGroup.find();
 
-        // Format groups for discovery
         const groupList = groups.map(g => ({
             id: g.id,
             name: g.name,
@@ -240,7 +243,7 @@ router.get('/labourers', auth, async (req, res) => {
             rate: g.rate || 450,
             accountType: 'group',
             profileImage: g.image,
-            membersCount: g.membersCount,
+            membersCount: (g.members && Array.isArray(g.members)) ? g.members.length : (typeof g.members === 'number' ? g.members : 0),
             rating: g.rating || 4.8
         }));
 
@@ -248,14 +251,14 @@ router.get('/labourers', auth, async (req, res) => {
             id: l.id,
             name: l.name,
             location: l.location || 'Local',
-            rate: l.rate || 450,
+            rate: l.rate || 400,
             accountType: 'individual',
-            profileImage: l.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(l.name)}&background=random`,
-            rating: l.rating || 4.8
+            profileImage: l.profileImage,
+            experience: l.experience || '2+ years',
+            rating: l.rating || 4.5
         }));
 
-        const unifiedList = [...groupList, ...individualList];
-        res.json(unifiedList);
+        res.json([...groupList, ...individualList]);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');

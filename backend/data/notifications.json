@@ -327,5 +327,51 @@
     "read": true,
     "metadata": {},
     "createdAt": "2026-01-12T03:54:52.750Z"
+  },
+  {
+    "id": "10b2b713-6b4c-4bde-9962-bb171c68899d",
+    "userId": "burrisai-0001",
+    "title": "Payment Requested",
+    "message": "loki has requested payment for \"dd\".",
+    "type": "payment_request",
+    "read": true,
+    "metadata": {
+      "jobId": "376b3a75-6bef-4729-b355-93d7e4a6cad5",
+      "amount": "5000"
+    },
+    "createdAt": "2026-01-13T15:21:33.603Z"
+  },
+  {
+    "id": "1280ba76-5cd5-409e-bf9e-ce677ffe5155",
+    "userId": "sai-0002",
+    "title": "New Direct Hire",
+    "message": "burrisai has hired you directly for a job! Click to chat!",
+    "type": "job",
+    "read": false,
+    "metadata": {},
+    "createdAt": "2026-01-13T15:36:33.652Z"
+  },
+  {
+    "id": "97b32c1a-d7e7-483a-b549-ada556244788",
+    "userId": "burrisai-0001",
+    "title": "Job Accepted",
+    "message": "loki has accepted your job: Hired sai",
+    "type": "job",
+    "read": false,
+    "metadata": {},
+    "createdAt": "2026-01-13T15:44:52.081Z"
+  },
+  {
+    "id": "694cff2a-74b0-4755-abd8-4ad4da5fecda",
+    "userId": "burrisai-0001",
+    "title": "Payment Requested",
+    "message": "loki has requested payment for \"Hired sai\".",
+    "type": "payment_request",
+    "read": false,
+    "metadata": {
+      "jobId": "fac670a8-6e6a-4abf-8b67-78caa8bfc428",
+      "amount": 450
+    },
+    "createdAt": "2026-01-13T16:00:06.062Z"
   }
 ]

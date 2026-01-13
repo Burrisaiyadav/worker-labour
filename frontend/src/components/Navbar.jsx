@@ -7,11 +7,21 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || '{}'));
+
+  useEffect(() => {
+    const handleUserUpdate = () => {
+        const updatedUser = JSON.parse(localStorage.getItem('user'));
+        if (updatedUser) setUser(updatedUser);
+    };
+    window.addEventListener('user-updated', handleUserUpdate);
+    return () => window.removeEventListener('user-updated', handleUserUpdate);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    setUser({});
     navigate('/login');
   };
 
@@ -81,7 +91,14 @@ const Navbar = () => {
                     to={(user.role?.toLowerCase() === 'labour' || user.role?.toLowerCase() === 'worker') ? '/labour/dashboard' : '/dashboard'} 
                     className="text-gray-700 font-medium flex items-center gap-2 hover:text-green-600 transition-colors"
                 >
-                  <User size={18} /> {user.name?.split(' ')[0]}
+                  <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border border-green-50 overflow-hidden">
+                    {user.profileImage ? (
+                      <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <User size={16} />
+                    )}
+                  </div>
+                  {user.name?.split(' ')[0]}
                 </Link>
                 <button 
                   onClick={handleLogout}
@@ -119,8 +136,15 @@ const Navbar = () => {
             {token ? (
               <>
                  <Link to="/dashboard" className="block w-full text-left px-3 py-2 text-gray-600 hover:text-green-600 font-medium">Dashboard</Link>
-                 <div className="px-3 py-2 text-gray-700 font-medium flex items-center gap-2">
-                    <User size={18} /> {user.name}
+                 <div className="px-3 py-2 text-gray-700 font-medium flex items-center gap-2" onClick={() => navigate(user.role?.toLowerCase() === 'farmer' ? '/farmer/profile' : '/labour/profile')}>
+                    <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border border-green-50 overflow-hidden cursor-pointer">
+                        {user.profileImage ? (
+                            <img src={user.profileImage} alt={user.name} className="h-full w-full object-cover" />
+                        ) : (
+                            <User size={16} />
+                        )}
+                    </div>
+                    {user.name}
                  </div>
                  <button 
                   onClick={handleLogout}

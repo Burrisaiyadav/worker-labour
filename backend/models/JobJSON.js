@@ -29,6 +29,8 @@ class JobJSON {
         this.paymentStatus = data.paymentStatus || 'Pending'; // Pending, Paid
         this.paymentRequested = data.paymentRequested || false; // Added
         this.paymentId = data.paymentId || null;
+        this.rating = data.rating || 0; // Added rating
+        this.ratingComment = data.ratingComment || ''; // Added comment
         this.createdAt = data.createdAt || new Date();
     }
 

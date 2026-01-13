@@ -21,6 +21,8 @@ class MessageJSON {
         this.type = data.type || 'text'; // 'text' or 'audio'
         this.timestamp = data.timestamp || new Date();
         this.read = data.read || false;
+        this.replyTo = data.replyTo || null; // Stores message ID being replied to
+        this.isForwarded = data.isForwarded || false;
     }
 
     static async find(query = {}) {
@@ -62,6 +64,13 @@ class MessageJSON {
             );
         }
 
+        fs.writeFileSync(dataPath, JSON.stringify(filteredMessages, null, 2));
+        return true;
+    }
+
+    static async deleteById(id) {
+        const messages = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+        const filteredMessages = messages.filter(m => m.id !== id);
         fs.writeFileSync(dataPath, JSON.stringify(filteredMessages, null, 2));
         return true;
     }
